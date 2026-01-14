@@ -760,14 +760,39 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                 <Card className={`bg-white border transition-colors ${editingId ? 'border-orange-200 ring-2 ring-orange-100' : 'border-blue-100'}`}>
                   <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${editingId ? 'text-orange-600' : 'text-gray-700'}`}>{editingId ? <><Edit size={16}/> Editando Produto</> : <><Plus size={16} className="text-blue-600"/> Novo Produto</>}</h3>
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    <div className="col-span-2 md:col-span-2"><input type="text" placeholder="Nome" className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.nome} onChange={e => setNovoItem({...novoItem, nome: e.target.value})} /></div>
-                    <div><input type="number" placeholder="Min" className="w-full p-2 border border-red-100 bg-red-50/20 rounded text-sm outline-none" value={novoItem.qtd_minima} onChange={e => setNovoItem({...novoItem, qtd_minima: e.target.value})} /></div>
-                    <div>
-                        <select className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.local} onChange={e => setNovoItem({...novoItem, local: e.target.value})}>
-                            {ordemRota.map(l => <option key={l} value={l}>{l}</option>)}
-                            {!ordemRota.includes(novoItem.local) && <option value={novoItem.local}>{novoItem.local}</option>}
-                        </select>
-                    </div>
+                    {/* 1. MANTÉM O NOME */}
+<div className="col-span-2 md:col-span-2">
+  <input type="text" placeholder="Nome" className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.nome} onChange={e => setNovoItem({...novoItem, nome: e.target.value})} />
+</div>
+
+{/* 2. MUDA O "MIN" PARA UM CAMPO MAIS ESTREITO */}
+<div className="col-span-1">
+  <input type="number" placeholder="Mín" className="w-full p-2 border border-red-100 bg-red-50/20 rounded text-sm outline-none" value={novoItem.qtd_minima} onChange={e => setNovoItem({...novoItem, qtd_minima: e.target.value})} />
+</div>
+
+{/* 3. ADICIONA ESTE NOVO SELECT DE UNIDADE AQUI */}
+<div className="col-span-1">
+  <select 
+    className="w-full p-2 border border-gray-200 rounded text-sm outline-none bg-white font-medium"
+    value={novoItem.unidade} 
+    onChange={e => setNovoItem({...novoItem, unidade: e.target.value})}
+  >
+    <option value="kg">KG</option>
+    <option value="un">UN</option>
+    <option value="pct">PCT</option>
+    <option value="balde">BALDE</option>
+    <option value="lt">LT</option>
+    <option value="g">G</option>
+  </select>
+</div>
+
+{/* 4. MANTÉM O FORNECEDOR (Mas agora ele ocupa 1 coluna no grid) */}
+<div className="col-span-2 md:col-span-1">
+  <select className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.local} onChange={e => setNovoItem({...novoItem, local: e.target.value})}>
+    {ordemRota.map(l => <option key={l} value={l}>{l}</option>)}
+    {!ordemRota.includes(novoItem.local) && <option value={novoItem.local}>{novoItem.local}</option>}
+  </select>
+</div>
                     <div className="col-span-2 md:col-span-1 flex gap-2">
                       {editingId && <button onClick={() => setEditingId(null)} className="flex-1 bg-gray-100 text-gray-500 rounded"><XCircle size={18} className="mx-auto" /></button>}
                       <button onClick={handleSalvarOuAtualizarItem} className={`flex-1 font-bold rounded text-sm text-white ${editingId ? 'bg-orange-500' : 'bg-blue-600'}`}>{editingId ? 'Ok' : 'Add'}</button>
