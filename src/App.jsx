@@ -489,7 +489,7 @@ export default function GestaoCompras() {
         </div>
       )}
 
-      <header className="bg-emerald-700 text-white p-4 shadow-lg sticky top-0 z-20">
+      <header className="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-50">
         <div className="max-w-3xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-bold flex items-center gap-2"><ClipboardList className="text-emerald-100" /> Compras</h1>
           <div className="flex items-center gap-2 bg-emerald-800/50 p-1 rounded-lg border border-emerald-600/30">
@@ -504,7 +504,7 @@ export default function GestaoCompras() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto p-4 space-y-4">
+      <main className="max-w-4xl mx-auto p-4 pb-24">
         <div className="grid grid-cols-4 p-1 bg-white rounded-xl shadow-sm border border-gray-100 sticky top-24 z-10 mt-2">
           {[{id: 'lista', icon: CalendarDays, label: 'Diário', short: 'Hoje'}, {id: 'historico', icon: History, label: 'Histórico', short: 'Hist.'}, {id: 'dashboard', icon: LayoutDashboard, label: 'Dash', short: 'Dash'}, {id: 'estoque', icon: Package, label: 'Cadastros', short: 'Itens'}].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`py-2.5 text-xs md:text-sm font-bold rounded-lg flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${activeTab === tab.id ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600'}`}>
