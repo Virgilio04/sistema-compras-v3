@@ -707,20 +707,40 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                 const fornecedoresDoRegistro = [...new Set(registro.itens.map(i => i.local))];
                 return (
                   <div key={registro.id} className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
-                    <button onClick={() => toggleHistoryExpand(registro.id)} className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-4">
+                    <button 
+  onClick={() => toggleHistoryExpand(registro.id)} 
+  className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors"
+>
+  {/* LADO ESQUERDO: INFORMAÇÕES DO RELATÓRIO */}
+  <div className="flex items-center gap-3">
+    <div className="bg-purple-100 text-purple-700 p-2 rounded-lg">
+      <Calendar size={20} />
+    </div>
+    <div className="text-left">
+      <h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3>
+      <p className="text-xs text-gray-500 flex items-center gap-1">
+        <Clock size={10} /> {registro.hora} • {registro.totalItens} itens
+      </p>
+    </div>
+  </div>
+
+  {/* LADO DIREITO: BOTÕES DE AÇÃO */}
+  <div className="flex items-center gap-4">
+    {/* ÍCONE DE LIXEIRA PARA EXCLUIR */}
     <div 
       onClick={(e) => {
-        e.stopPropagation(); // Importante para não abrir o histórico ao clicar na lixeira
+        e.stopPropagation(); // Impede que o card abra ao clicar na lixeira
         handleExcluirHistorico(registro.id);
       }} 
-      className="text-gray-300 hover:text-red-500 transition-colors p-1"
+      className="text-gray-300 hover:text-red-500 transition-colors p-2"
       title="Excluir este relatório"
     >
-      <Trash2 size={18} />
+      <Trash2 size={20} />
     </div>
+    
+    {/* SETA DE EXPANDIR */}
     <div className="text-gray-400">
-      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+      {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
     </div>
   </div>
 </button>
