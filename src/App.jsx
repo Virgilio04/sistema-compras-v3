@@ -416,7 +416,16 @@ export default function GestaoCompras() {
           showToast('Produto adicionado!');
       }
     }
-    setNovoItem({ nome: '', qtd_atual: 0, qtd_minima: 0, unidade: 'kg', local: 'Moranguinho' });
+    setNovoItem({ 
+  nome: '', 
+  qtd_atual: 0, 
+  qtd_minima: 0, 
+  unidade: 'kg', 
+  local: novoItem.local // Mantém o valor que já estava selecionado
+});
+
+if (editingId) setEditingId(null);
+showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
   };
 
   const handleEditarItem = (item) => { 
