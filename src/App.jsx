@@ -126,6 +126,34 @@ export default function GestaoCompras() {
     }
   };
 
+  const copiarPedidoWhatsApp = (data, fornecedorAlvo) => {
+  // 1. Cabeçalho do texto
+  let texto = `*PEDIDO - ${fornecedorAlvo.toUpperCase()}*\n`;
+  texto += `Data: ${formatDateKey(data)}\n`;
+  texto += `------------------------------\n\n`;
+  texto += `*📍 ${fornecedorAlvo.toUpperCase()}*\n`;
+
+  // 2. Filtra os itens desse fornecedor que precisam comprar
+  const itens = historico[data].itens.filter(
+    item => item.fornecedor === fornecedorAlvo && item.precisaComprar
+  );
+
+  if (itens.length === 0) {
+    alert("Não há itens para comprar deste fornecedor nesta data.");
+    return;
+  }
+
+  // 3. Monta a lista de itens
+  itens.forEach(item => {
+    texto += `- ${item.nome}: *${item.falta % 1 !== 0 ? item.falta.toFixed(1) : item.falta} ${item.unidade}*\n`;
+  });
+
+  // 4. Copia para a área de transferência
+  navigator.clipboard.writeText(texto).then(() => {
+    alert(`Pedido de ${fornecedorAlvo} copiado!`);
+  });
+};
+
   // --- LÓGICA DE DADOS ---
   const dadosLista = useMemo(() => {
     if (!isToday) {
@@ -312,22 +340,36 @@ export default function GestaoCompras() {
   };
 
   const handleCopiarSelecionados = (registro) => {
-    if (selectedFornecedores.length === 0) { showToast('Selecione pelo menos um fornecedor.', 'error'); return; }
-    const fornecedoresTitle = selectedFornecedores.join(' + ').toUpperCase();
-    let texto = `*PEDIDO - ${fornecedoresTitle}*\nData: ${registro.data}\n------------------------------\n`;
-    const itensFiltrados = registro.itens.filter(i => selectedFornecedores.includes(i.local));
-    const itensPorLocal = {};
-    selectedFornecedores.forEach(f => itensPorLocal[f] = []);
-    itensFiltrados.forEach(item => { if (itensPorLocal[item.local]) itensPorLocal[item.local].push(item); });
+  if (selectedFornecedores.length === 0) return;
 
-    Object.keys(itensPorLocal).forEach(local => {
-        if (itensPorLocal[local].length > 0) {
-            texto += `\n*📍 ${local.toUpperCase()}*\n`;
-             itensPorLocal[local].forEach(item => { texto += `- ${item.nome}: *${parseFloat(item.qtd)} ${item.unidade}*\n`; });
-        }
+  let textoFinal = "";
+
+  selectedFornecedores.forEach((forn, index) => {
+    // Cabeçalho individual para cada fornecedor selecionado
+    textoFinal += `*PEDIDO - ${forn.toUpperCase()}*\n`;
+    textoFinal += `Data: ${registro.data}\n`;
+    textoFinal += `------------------------------\n\n`;
+    textoFinal += `*📍 ${forn.toUpperCase()}*\n`;
+
+    // Filtra os itens desse fornecedor específico dentro do registro
+    const itensDoForn = registro.itens.filter(i => i.local === forn);
+
+    itensDoForn.forEach(item => {
+      textoFinal += `- ${item.nome}: *${item.qtd} ${item.unidade}*\n`;
     });
-    copiarParaClipboard(texto);
-  };
+
+    // Adiciona uma separação se houver mais de um fornecedor selecionado
+    if (index < selectedFornecedores.length - 1) {
+      textoFinal += `\n\n`;
+    }
+  });
+
+  // Copia para o teclado do celular/PC
+  navigator.clipboard.writeText(textoFinal).then(() => {
+    alert("Pedido(s) formatado(s) e copiado(s)!");
+    setSelectedFornecedores([]); // Limpa a seleção após copiar
+  });
+};
 
   // --- CRUD ITEM (COM SUPABASE) ---
   const handleSalvarOuAtualizarItem = async () => {
