@@ -145,6 +145,26 @@ export default function GestaoCompras() {
   fetchProdutos();       // Atualiza a lista
 };
 
+const handleExcluirHistorico = async (id) => {
+  if (!confirm('Deseja realmente excluir este relatório do histórico?')) return;
+
+  try {
+    const { error } = await supabase
+      .from('historico_compras') // Certifique-se que o nome da tabela está correto
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+
+    showToast('Relatório excluído!');
+    // Atualiza a lista local removendo o item excluído
+    setHistorico(prev => prev.filter(item => item.id !== id));
+  } catch (error) {
+    console.error('Erro ao excluir:', error);
+    showToast('Erro ao excluir relatório', 'error');
+  }
+};
+
   const copiarPedidoWhatsApp = (data, fornecedorAlvo) => {
   // 1. Cabeçalho do texto
   let texto = `*PEDIDO - ${fornecedorAlvo.toUpperCase()}*\n`;
@@ -688,9 +708,22 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                 return (
                   <div key={registro.id} className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
                     <button onClick={() => toggleHistoryExpand(registro.id)} className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors">
-                      <div className="flex items-center gap-3"><div className="bg-purple-100 text-purple-700 p-2 rounded-lg"><Calendar size={20} /></div><div className="text-left"><h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3><p className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {registro.hora} • {registro.totalItens} itens</p></div></div>
-                      <div className="text-gray-400">{isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}</div>
-                    </button>
+                      <div className="flex items-center gap-4">
+    <div 
+      onClick={(e) => {
+        e.stopPropagation(); // Importante para não abrir o histórico ao clicar na lixeira
+        handleExcluirHistorico(registro.id);
+      }} 
+      className="text-gray-300 hover:text-red-500 transition-colors p-1"
+      title="Excluir este relatório"
+    >
+      <Trash2 size={18} />
+    </div>
+    <div className="text-gray-400">
+      {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+    </div>
+  </div>
+</button>
                     {isExpanded && (
                       <div className="bg-purple-50/30 border-t border-purple-50 p-4">
                         <div className="mb-6 bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
