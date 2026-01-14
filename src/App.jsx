@@ -126,6 +126,25 @@ export default function GestaoCompras() {
     }
   };
 
+  const handleAddProduto = async (e) => {
+  e.preventDefault();
+  
+  // ... lógica de enviar para o Supabase ...
+
+  // APÓS O SUCESSO:
+  setNome('');       // Limpa o nome para o próximo
+  setQtdMinima('');  // Limpa a quantidade
+  setUnidade('un');  // Reseta a unidade (se quiser)
+
+  // COMENTE OU REMOVA A LINHA ABAIXO:
+  // setLocal('Moranguinho'); 
+  
+  // Assim, o estado 'local' continuará com o último valor que você selecionou!
+  
+  setModalAberto(false); // Fecha o modal
+  fetchProdutos();       // Atualiza a lista
+};
+
   const copiarPedidoWhatsApp = (data, fornecedorAlvo) => {
   // 1. Cabeçalho do texto
   let texto = `*PEDIDO - ${fornecedorAlvo.toUpperCase()}*\n`;
