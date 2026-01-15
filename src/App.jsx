@@ -5,7 +5,7 @@ import {
   List, Package, Search, Save, Calendar, Clock, ChevronDown, ChevronUp, 
   History, RotateCcw, ClipboardList, Edit, XCircle, ChevronLeft, ChevronRight, 
   CalendarDays, LayoutDashboard, TrendingUp, Store, Copy, Check, Share2, 
-  Phone, FileText, Truck, X
+  Phone, FileText, Truck, X, Printer
 } from 'lucide-react';
 
 // --- COMPONENTES UI BÁSICOS ---
