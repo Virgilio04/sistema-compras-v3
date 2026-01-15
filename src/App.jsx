@@ -117,6 +117,30 @@ export default function GestaoCompras() {
     else { setSelectedFornecedores([...selectedFornecedores, fornecedor]); }
   };
 
+  const handleCopiarResumoChefe = (registro) => {
+  let texto = `*RESUMO PARA CONFERÊNCIA - ${registro.data}*\n`;
+  texto += `----------------------------------\n\n`;
+
+  registro.itens.forEach(item => {
+    // Pegamos os dados que salvamos no histórico
+    const tinha = item.estoque_no_dia || 0;
+    const minimo = item.minimo_esperado || 0;
+    const comprou = item.qtd || 0;
+
+    texto += `*${item.nome.toUpperCase()}*\n`;
+    texto += `• Tinha no estoque: ${tinha} ${item.unidade}\n`;
+    texto += `• O mínimo exigido: ${minimo} ${item.unidade}\n`;
+    texto += `👉 *COMPRAR: ${comprou} ${item.unidade}*\n`;
+    texto += `------------------\n`;
+  });
+
+  texto += `\n_Relatório gerado para conferência de estoque._`;
+
+  navigator.clipboard.writeText(texto).then(() => {
+    showToast('Resumo para a chefe copiado!', 'success');
+  });
+};
+
   // ADICIONE ESTA FUNÇÃO NOVA AQUI:
   const toggleCarrinho = async (item) => {
   // Se o item já está no carrinho, não fazemos nada ou desmarcamos (opcional)
@@ -783,6 +807,13 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                           <button onClick={() => handleCopiarListaGeral(registro)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3">
                               <Copy size={16} /> Copiar Relatório Completo (Gerente)
                           </button>
+                          {/* NOVO BOTÃO PARA A CHEFE (Adicione este aqui) */}
+  <button 
+    onClick={() => handleCopiarResumoChefe(registro)} 
+    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+  >
+      <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
+  </button>
                           <div className="border-t border-gray-100 my-3"></div>
                           <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
                           <div className="grid grid-cols-2 gap-2 mb-3">
