@@ -118,13 +118,29 @@ export default function GestaoCompras() {
   };
 
   // ADICIONE ESTA FUNÇÃO NOVA AQUI:
-  const toggleCarrinho = (id) => {
-    if (itensNoCarrinho.includes(id)) {
-      setItensNoCarrinho(itensNoCarrinho.filter(itemId => itemId !== id));
-    } else {
-      setItensNoCarrinho([...itensNoCarrinho, id]);
-    }
-  };
+  const toggleCarrinho = async (item) => {
+  // Se o item já está no carrinho, não fazemos nada ou desmarcamos (opcional)
+  if (itensNoCarrinho.includes(item.id)) {
+    setItensNoCarrinho(itensNoCarrinho.filter(id => id !== item.id));
+    return;
+  }
+
+  // AÇÃO DE ATALHO:
+  // Se você clicou na box, o sistema entende que o item está OK
+  // 1. Adiciona o efeito visual de riscado
+  setItensNoCarrinho([...itensNoCarrinho, item.id]);
+
+  // 2. Atualiza no banco de dados para a quantidade mínima (zerando a necessidade de compra)
+  const novaQtd = parseFloat(item.qtd_minima);
+  
+  // Atualiza localmente para sumir o aviso de "falta"
+  setInsumos(prev => prev.map(i => i.id === item.id ? { ...i, qtd_atual: novaQtd } : i));
+  
+  // Salva no Supabase
+  await supabase.from('insumos').update({ qtd_atual: novaQtd }).eq('id', item.id);
+  
+  showToast(`${item.nome} marcado como OK!`);
+};
 
   const handleAddProduto = async (e) => {
   e.preventDefault();
@@ -651,7 +667,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                         {itensParaMostrar.map(item => (
                           <div 
     key={item.id} 
-    onClick={() => isToday && item.precisaComprar ? toggleCarrinho(item.id) : null}
+    onClick={() => isToday && item.precisaComprar ? toggleCarrinho(item) : null}
     className={`grid grid-cols-12 p-2 items-center text-sm transition-all cursor-pointer border-b border-gray-50
       ${item.precisaComprar ? 'bg-red-50/20' : 'bg-white'}
       ${itensNoCarrinho.includes(item.id) ? 'opacity-40 bg-gray-100' : ''}
