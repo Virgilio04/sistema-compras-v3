@@ -877,6 +877,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     <option value="un">UN</option>
     <option value="pct">PCT</option>
     <option value="garrafa">GARRAFA</option>
+    <option value="barra">BARRA</option>
     <option value="balde">BALDE</option>
     <option value="lt">LT</option>
     <option value="g">G</option>
