@@ -775,7 +775,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     <div className="flex flex-col">
       <span className="text-sm font-bold text-gray-700">{item.nome}</span>
       <span className="text-[10px] text-gray-400 uppercase italic">
-        Tinha: {item.estoque_no_dia} | Pedido: {item.minimo_esperado}
+        Tinha: {item.estoque_no_dia} | Mínimo: {item.minimo_esperado}
       </span>
     </div>
     
