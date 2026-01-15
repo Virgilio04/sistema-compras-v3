@@ -295,6 +295,8 @@ const handleExcluirHistorico = async (id) => {
         itens_json: (dadosLista.itensFlat || []).map(item => ({
           nome: item.nome,
           qtd: (parseFloat(item.falta) || 0).toFixed(2),
+          estoque_no_dia: item.qtd_atual,              // O que TINHA na prateleira (NOVO)
+          minimo_esperado: item.qtd_minima,             // O que o sistema pedia (NOVO)
           unidade: item.unidade,
           local: item.local
         }))
@@ -769,11 +771,22 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                         </div>
                         <div className="space-y-2">
                           {registro.itens.map((item, idx) => (
-                            <div key={idx} className="flex justify-between items-center bg-white p-2 rounded border border-purple-100 shadow-sm">
-                              <span className="text-sm font-medium text-gray-700">{item.nome}</span>
-                              <div className="flex items-center gap-3"><span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span><span className="text-sm font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">{item.qtd} {item.unidade}</span></div>
-                            </div>
-                          ))}
+  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-purple-100 shadow-sm">
+    <div className="flex flex-col">
+      <span className="text-sm font-bold text-gray-700">{item.nome}</span>
+      <span className="text-[10px] text-gray-400 uppercase italic">
+        Tinha: {item.estoque_no_dia} | Pedido: {item.minimo_esperado}
+      </span>
+    </div>
+    
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span>
+      <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+        +{item.qtd} {item.unidade}
+      </span>
+    </div>
+  </div>
+))}
                         </div>
                       </div>
                     )}
