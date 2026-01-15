@@ -71,6 +71,70 @@ export default function GestaoCompras() {
     setLoading(false);
   };
 
+  const imprimirResumoChefe = (registro) => {
+  const janelaImpressao = window.open('', '', 'width=800,height=900');
+  
+  const html = `
+    <html>
+      <head>
+        <title>Relatório de Conferência - ${registro.data}</title>
+        <style>
+          body { font-family: sans-serif; padding: 40px; color: #333; }
+          .header { border-bottom: 2px solid #333; padding-bottom: 10px; mb: 20px; }
+          .data { float: right; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #f4f4f4; text-align: left; padding: 10px; border: 1px solid #ddd; }
+          td { padding: 10px; border: 1px solid #ddd; }
+          .setor { background: #eee; font-weight: bold; }
+          .total { font-weight: bold; color: #d32f2f; }
+          .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
+          @media print { .no-print { display: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <span class="data">Gerado em: ${registro.data} às ${registro.hora}</span>
+          <h1>RELATÓRIO DE CONFERÊNCIA DE ESTOQUE</h1>
+          <p>Responsável pela contagem: _________________________________</p>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>PRODUTO</th>
+              <th>LOCAL</th>
+              <th>TINHA (Estoque)</th>
+              <th>MÍNIMO (Ideal)</th>
+              <th>COMPRADO (Reposição)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${registro.itens.map(item => `
+              <tr>
+                <td><strong>${item.nome}</strong></td>
+                <td>${item.local}</td>
+                <td>${item.estoque_no_dia || 0} ${item.unidade}</td>
+                <td>${item.minimo_esperado || 0} ${item.unidade}</td>
+                <td class="total">+ ${item.qtd} ${item.unidade}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>Este documento serve para conferência física da entrada de mercadorias.</p>
+          <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #059669; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Imprimir ou Salvar PDF
+          </button>
+        </div>
+      </body>
+    </html>
+  `;
+
+  janelaImpressao.document.write(html);
+  janelaImpressao.document.close();
+};
+
   const ordemRota = useMemo(() => fornecedores.map(f => f.nome), [fornecedores]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeTab, setActiveTab] = useState('lista'); 
@@ -814,6 +878,13 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
   >
       <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
   </button>
+  {/* BOTÃO PARA GERAR A FOLHA DE PAPEL */}
+<button 
+  onClick={() => imprimirResumoChefe(registro)} 
+  className="w-full bg-gray-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+>
+    <Printer size={16} /> Gerar Folha de Conferência (PDF)
+</button>
                           <div className="border-t border-gray-100 my-3"></div>
                           <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
                           <div className="grid grid-cols-2 gap-2 mb-3">
