@@ -221,15 +221,24 @@ const handleExcluirHistorico = async (id) => {
     const itensParaComprarFlat = [];
 
     insumos.forEach(item => {
-      const localKey = ordemRota.includes(item.local) ? item.local : 'Outros';
-      const falta = parseFloat(item.qtd_minima) - parseFloat(item.qtd_atual);
-      const precisaComprar = falta > 0;
-      if (precisaComprar) {
-        totalItensParaComprar++;
-        itensParaComprarFlat.push({ ...item, falta });
-      }
-      agrupado[localKey].push({ ...item, falta: falta > 0 ? falta : 0, precisaComprar });
-    });
+  const localKey = ordemRota.includes(item.local) ? item.local : 'Outros';
+  const faltaCalculada = parseFloat(item.qtd_minima) - parseFloat(item.qtd_atual);
+  
+  let faltaFinal = faltaCalculada > 0 ? faltaCalculada : 0;
+
+  // Lógica de Arredondamento para itens inteiros (Balde, Pacote, Unidade)
+  const unidadesFracionadas = ['kg', 'g', 'kg.', 'g.'];
+  if (faltaFinal > 0 && !unidadesFracionadas.includes(item.unidade.toLowerCase())) {
+    faltaFinal = Math.ceil(faltaFinal); // Arredonda 0.1 para 1, por exemplo.
+  }
+
+  const precisaComprar = faltaFinal > 0;
+  if (precisaComprar) {
+    totalItensParaComprar++;
+    itensParaComprarFlat.push({ ...item, falta: faltaFinal });
+  }
+  agrupado[localKey].push({ ...item, falta: faltaFinal, precisaComprar });
+});
 
     const locaisExibicao = ordemRota.filter(l => agrupado[l].length > 0);
     if (agrupado['Outros'].length > 0) locaisExibicao.push('Outros');
@@ -678,16 +687,21 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     </div>
 
     {/* COLUNA 3: QUANTIDADE QUE FALTA */}
-    <div className="col-span-3 md:col-span-3 text-right pl-2">
-      {item.precisaComprar ? (
-        <div className={`px-2 py-1 rounded inline-block font-bold min-w-[3rem] text-center shadow-sm 
-          ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}
-        `}>
-          {isToday ? '+' : ''}{item.falta % 1 !== 0 ? item.falta.toFixed(1) : item.falta} 
-          <span className="text-[10px] ml-1">{item.unidade}</span>
-        </div>
-      ) : <CheckCircle size={20} className="text-emerald-300 inline-block" />}
+<div className="col-span-3 md:col-span-3 text-right pl-2">
+  {item.precisaComprar ? (
+    <div className={`px-2 py-1 rounded inline-block font-bold min-w-[3rem] text-center shadow-sm 
+      ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}
+    `}>
+      {isToday ? '+' : ''}
+      {/* Se for KG ou G mostra 1 casa decimal, se for Unidade/Balde mostra número inteiro */}
+      {['kg', 'g'].includes(item.unidade.toLowerCase()) 
+        ? Number(item.falta).toFixed(1) 
+        : Math.ceil(item.falta)
+      } 
+      <span className="text-[10px] ml-1">{item.unidade}</span>
     </div>
+  ) : <CheckCircle size={20} className="text-emerald-300 inline-block" />}
+</div>
   </div>
                         ))}
                       </div>
