@@ -877,12 +877,13 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     <option value="un">UN</option>
     <option value="pct">PCT</option>
     <option value="garrafa">GARRAFA</option>
-    <option value="barra">BARRAS</option>
+    <option value="barras">BARRAS</option>
     <option value="balde">BALDE</option>
     <option value="lt">LT</option>
     <option value="g">G</option>
   </select>
 </div>
+
 
 {/* 4. MANTÉM O FORNECEDOR (Mas agora ele ocupa 1 coluna no grid) */}
 <div className="col-span-2 md:col-span-1">
