@@ -923,21 +923,32 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
       <input type="number" placeholder="Mín" className="w-full p-2 border border-red-100 bg-red-50/20 rounded text-sm outline-none" value={novoItem.qtd_minima} onChange={e => setNovoItem({...novoItem, qtd_minima: e.target.value})} />
     </div>
 
-    {/* 3. UNIDADE */}
-    <div className="col-span-1">
-      <select 
-        className="w-full p-2 border border-gray-200 rounded text-sm outline-none bg-white font-medium"
-        value={novoItem.unidade} 
-        onChange={e => setNovoItem({...novoItem, unidade: e.target.value})}
-      >
-        <option value="kg">KG</option>
-        <option value="un">UN</option>
-        <option value="pct">PCT</option>
-        <option value="balde">BALDE</option>
-        <option value="lt">LT</option>
-        <option value="g">G</option>
-      </select>
+    {/* COLUNA 3: QUANTIDADE QUE FALTA + AVISO DE RENDIMENTO */}
+<div className="col-span-3 md:col-span-3 text-right pl-2">
+  {item.precisaComprar ? (
+    <div className="flex flex-col items-end">
+      <div className={`px-2 py-1 rounded inline-block font-bold min-w-[3rem] text-center shadow-sm 
+        ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}
+      `}>
+        {isToday ? '+' : ''}
+        {['kg', 'g'].includes(item.unidade.toLowerCase()) 
+          ? Number(item.falta).toFixed(1) 
+          : Math.ceil(item.falta)
+        } 
+        <span className="text-[10px] ml-1">{item.unidade}</span>
+      </div>
+
+      {/* LÓGICA DE RENDIMENTO: Se o item for Carne Moída (Pai), ele mostra quanto vai render de Recheio (Filho) */}
+      {insumos.some(filho => filho.item_pai_id === item.id) && (
+        <div className="text-[9px] text-emerald-600 font-black mt-1 leading-tight animate-pulse uppercase">
+          Rende ~{ (item.falta / 0.33).toFixed(1) }kg pronto
+        </div>
+      )}
     </div>
+  ) : (
+    <CheckCircle size={20} className="text-emerald-500 ml-auto" />
+  )}
+</div>
 
     {/* 4. LOCAL/FORNECEDOR */}
     <div className="col-span-2 md:col-span-1">
