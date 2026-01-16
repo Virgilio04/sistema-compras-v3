@@ -1025,6 +1025,31 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     {!ordemRota.includes(novoItem.local) && <option value={novoItem.local}>{novoItem.local}</option>}
   </select>
 </div>
+{/* COULE O CÓDIGO NOVO AQUI ABAIXO: */}
+<div className="col-span-2 md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 p-3 bg-blue-50/30 rounded-lg border border-blue-100">
+  <div>
+    <label className="text-[10px] font-bold text-blue-600 uppercase">Matéria-prima Usada (Opcional)</label>
+    <select 
+      className="w-full p-2 border border-blue-200 rounded text-sm outline-none bg-white"
+      value={novoItem.item_pai_id || ''} 
+      onChange={e => setNovoItem({...novoItem, item_pai_id: e.target.value ? Number(e.target.value) : null})}
+    >
+      <option value="">Nenhum (Item de compra direta)</option>
+      {insumos.filter(i => i.id !== editingId).map(i => (
+        <option key={i.id} value={i.id}>{i.nome}</option>
+      ))}
+    </select>
+  </div>
+  <div>
+    <label className="text-[10px] font-bold text-blue-600 uppercase">Fator de Rendimento</label>
+    <input 
+      type="number" step="0.01"
+      className="w-full p-2 border border-blue-200 rounded text-sm outline-none" 
+      value={novoItem.fator_rendimento} 
+      onChange={e => setNovoItem({...novoItem, fator_rendimento: e.target.value})} 
+    />
+  </div>
+</div>
                     <div className="col-span-2 md:col-span-1 flex gap-2">
                       {editingId && <button onClick={() => setEditingId(null)} className="flex-1 bg-gray-100 text-gray-500 rounded"><XCircle size={18} className="mx-auto" /></button>}
                       <button onClick={handleSalvarOuAtualizarItem} className={`flex-1 font-bold rounded text-sm text-white ${editingId ? 'bg-orange-500' : 'bg-blue-600'}`}>{editingId ? 'Ok' : 'Add'}</button>
