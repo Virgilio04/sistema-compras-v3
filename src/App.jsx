@@ -284,9 +284,9 @@ const handleExcluirHistorico = async (id) => {
   texto += `------------------------------\n\n`;
   texto += `*📍 ${fornecedorAlvo.toUpperCase()}*\n`;
 
-  // 2. Filtra os itens desse fornecedor que precisam comprar
+  // ADICIONE O FILTRO: !item.item_pai_id
   const itens = historico[data].itens.filter(
-    item => item.fornecedor === fornecedorAlvo && item.precisaComprar
+    item => item.fornecedor === fornecedorAlvo && item.precisaComprar && !item.item_pai_id
   );
 
   if (itens.length === 0) {
@@ -587,7 +587,9 @@ const handleExcluirHistorico = async (id) => {
   qtd_atual: 0, 
   qtd_minima: 0, 
   unidade: 'kg', 
-  local: novoItem.local // Mantém o valor que já estava selecionado
+  local: novoItem.local,
+  item_pai_id: null,        // Resetar aqui
+  fator_rendimento: 1       // Resetar aqui
 });
 
 if (editingId) setEditingId(null);
@@ -699,6 +701,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
       </header>
 
       <main className="max-w-3xl mx-auto p-4 space-y-4">
+        {/* MENU DE ABAS */}
         <div className="grid grid-cols-4 p-1 bg-white rounded-xl shadow-sm border border-gray-100 sticky top-24 z-10 mt-2">
           {[{id: 'lista', icon: CalendarDays, label: 'Diário', short: 'Hoje'}, {id: 'historico', icon: History, label: 'Histórico', short: 'Hist.'}, {id: 'dashboard', icon: LayoutDashboard, label: 'Dash', short: 'Dash'}, {id: 'estoque', icon: Package, label: 'Cadastros', short: 'Itens'}].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`py-2.5 text-xs md:text-sm font-bold rounded-lg flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 transition-all ${activeTab === tab.id ? 'bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-100' : 'text-gray-400 hover:text-gray-600'}`}>
@@ -709,142 +712,60 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
           ))}
         </div>
 
+        {/* CONTEÚDO DA ABA DIÁRIO */}
         {activeTab === 'lista' && (
           <div className="space-y-4 animate-fade-in">
-            {!isToday && !dadosLista.hasData && (
-              <div className="flex flex-col items-center justify-center py-12 bg-white rounded-xl border border-dashed border-gray-300 text-center">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4"><CalendarDays size={32} /></div>
-                <h3 className="text-lg font-bold text-gray-700">Sem registros para {formatDateKey(selectedDate)}</h3>
-                <button onClick={() => setSelectedDate(new Date())} className="mt-4 text-emerald-600 font-bold text-sm hover:underline bg-emerald-50 px-4 py-2 rounded-lg">Voltar para Hoje</button>
-              </div>
-            )}
-            
             {isToday && (
               <>
                 <div className="relative mb-2">
                     <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                      type="text" 
-                      placeholder="Filtrar por produto ou fornecedor..." 
-                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 text-sm outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" 
-                      value={filtroDiario} 
-                      onChange={e => setFiltroDiario(e.target.value)} 
-                    />
-                    {filtroDiario && (
-                      <button 
-                        onClick={() => setFiltroDiario('')} 
-                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                      >
-                        <X size={18} />
-                      </button>
-                    )}
+                    <input type="text" placeholder="Filtrar..." className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-200 text-sm outline-none" value={filtroDiario} onChange={e => setFiltroDiario(e.target.value)} />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                  <button onClick={() => openConfirmModal('reset')} className="w-full bg-white border border-gray-300 text-gray-600 px-4 py-3 rounded-lg font-bold shadow-sm hover:bg-gray-50 flex items-center justify-center gap-2">
-                    <RotateCcw size={18} /> Zerar Contagem
-                  </button>
-                  <button onClick={() => openConfirmModal('save')} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 rounded-lg font-bold shadow-md shadow-emerald-200 flex items-center justify-center gap-2">
-                    <Save size={18} /> Finalizar & Salvar
-                  </button>
+                  <button onClick={() => openConfirmModal('reset')} className="w-full bg-white border border-gray-300 text-gray-600 px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><RotateCcw size={18} /> Zerar</button>
+                  <button onClick={() => openConfirmModal('save')} className="w-full bg-emerald-600 text-white px-4 py-3 rounded-lg font-bold flex items-center justify-center gap-2"><Save size={18} /> Salvar</button>
                 </div>
               </>
             )}
 
-            {dadosLista.hasData && (
-              <>
-                {/* Só mostra os atalhos de paradas se NÃO tiver filtro, para não poluir */}
-                {!filtroDiario && (
-                  <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-wrap gap-2 text-xs">
-                    <span className="font-bold text-gray-500 uppercase flex items-center gap-1"><MapPin size={12}/> Paradas:</span>
-                    {dadosLista.locais.map((local, idx) => (
-                      <span key={local} className={`${dadosLista.grupos[local].some(i => i.precisaComprar) ? 'text-gray-800 font-bold' : 'text-gray-400'} flex items-center`}>
-                          {idx + 1}. {local} {idx < dadosLista.locais.length - 1 && <ArrowRight size={10} className="ml-1 text-gray-300"/>}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {dadosLista.locais.map((local, index) => {
-                  // LÓGICA DE FILTRO
-                  const itensDoLocal = dadosLista.grupos[local];
-                  const itensParaMostrar = filtroDiario 
-                    ? itensDoLocal.filter(item => 
-                        item.nome.toLowerCase().includes(filtroDiario.toLowerCase()) || 
-                        local.toLowerCase().includes(filtroDiario.toLowerCase())
-                      )
-                    : itensDoLocal;
-
-                  if (filtroDiario && itensParaMostrar.length === 0) return null;
-
-                  return (
-                    <div key={local} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                      <div className="bg-gray-50 p-2 border-b border-gray-200 flex justify-between items-center">
-                        <div className="flex items-center gap-2"><span className="bg-emerald-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">{index + 1}</span><h3 className="font-bold text-gray-700 text-sm uppercase">{local}</h3></div>
+            {dadosLista.hasData && dadosLista.locais.map((local, index) => (
+              <div key={local} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-4">
+                <div className="bg-gray-50 p-2 border-b border-gray-200 flex items-center gap-2">
+                  <span className="bg-emerald-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">{index + 1}</span>
+                  <h3 className="font-bold text-gray-700 text-sm uppercase">{local}</h3>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {dadosLista.grupos[local].filter(i => !filtroDiario || i.nome.toLowerCase().includes(filtroDiario.toLowerCase())).map(item => (
+                    <div key={item.id} onClick={() => isToday && item.precisaComprar ? toggleCarrinho(item) : null} className={`grid grid-cols-12 p-2 items-center text-sm cursor-pointer ${item.precisaComprar ? 'bg-red-50/20' : 'bg-white'} ${itensNoCarrinho.includes(item.id) ? 'opacity-40 bg-gray-100' : ''}`}>
+                      <div className="col-span-6 flex items-center gap-2">
+                        {isToday && item.precisaComprar && (
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center ${itensNoCarrinho.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-300'}`}>
+                            {itensNoCarrinho.includes(item.id) && <Check size={14} className="text-white" />}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.nome}</span>
+                            {item.item_pai_id && <span className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-full font-black border border-amber-200">PREPARO INTERNO</span>}
+                          </div>
+                          <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
+                        </div>
                       </div>
-                      <div className="divide-y divide-gray-100">
-                        {itensParaMostrar.map(item => (
-                          <div 
-    key={item.id} 
-    onClick={() => isToday && item.precisaComprar ? toggleCarrinho(item) : null}
-    className={`grid grid-cols-12 p-2 items-center text-sm transition-all cursor-pointer border-b border-gray-50
-      ${item.precisaComprar ? 'bg-red-50/20' : 'bg-white'}
-      ${itensNoCarrinho.includes(item.id) ? 'opacity-40 bg-gray-100' : ''}
-    `}
-  >
-    {/* COLUNA 1: CHECKBOX + NOME */}
-    <div className="col-span-5 md:col-span-6 pr-1 leading-tight flex items-center gap-2">
-      {isToday && item.precisaComprar && (
-        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors flex-shrink-0
-          ${itensNoCarrinho.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-300'}
-        `}>
-          {itensNoCarrinho.includes(item.id) && <Check size={14} className="text-white" />}
-        </div>
-      )}
-      
-      <div>
-        <span className={`font-bold block ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-          {item.nome}
-        </span>
-        {isToday && <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>}
-      </div>
-    </div>
-
-    {/* COLUNA 2: BOTÕES +/- (Com stopPropagation para não ativar o carrinho ao clicar no botão) */}
-    <div className="col-span-4 md:col-span-3 flex justify-center items-center gap-1" onClick={(e) => e.stopPropagation()}>
-      {isToday ? (
-        <div className="flex items-center bg-white border border-gray-200 rounded h-8 shadow-sm">
-          <button onClick={() => handleAtualizarEstoque(item.id, Math.max(0, parseFloat(item.qtd_atual) - 1))} className="w-8 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 border-r border-gray-100 rounded-l">-</button>
-          <input type="number" className="w-10 text-center outline-none font-bold text-gray-700 text-sm bg-transparent" value={item.qtd_atual} onChange={(e) => handleAtualizarEstoque(item.id, e.target.value)} />
-          <button onClick={() => handleAtualizarEstoque(item.id, parseFloat(item.qtd_atual) + 1)} className="w-8 h-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-50 border-l border-gray-100 rounded-r">+</button>
-        </div>
-      ) : <span className="text-xs text-gray-400 italic">Registrado</span>}
-    </div>
-
-    {/* COLUNA 3: QUANTIDADE QUE FALTA */}
-<div className="col-span-3 md:col-span-3 text-right pl-2">
-  {item.precisaComprar ? (
-    <div className={`px-2 py-1 rounded inline-block font-bold min-w-[3rem] text-center shadow-sm 
-      ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}
-    `}>
-      {isToday ? '+' : ''}
-      {/* Se for KG ou G mostra 1 casa decimal, se for Unidade/Balde mostra número inteiro */}
-      {['kg', 'g'].includes(item.unidade.toLowerCase()) 
-        ? Number(item.falta).toFixed(1) 
-        : Math.ceil(item.falta)
-      } 
-      <span className="text-[10px] ml-1">{item.unidade}</span>
-    </div>
-  ) : <CheckCircle size={20} className="text-emerald-300 inline-block" />}
-</div>
-  </div>
-                        ))}
+                      <div className="col-span-3 flex justify-center" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center border rounded h-8">
+                          <button onClick={() => handleAtualizarEstoque(item.id, item.qtd_atual - 1)} className="px-2">-</button>
+                          <input type="number" className="w-8 text-center bg-transparent outline-none" value={item.qtd_atual} readOnly />
+                          <button onClick={() => handleAtualizarEstoque(item.id, item.qtd_atual + 1)} className="px-2">+</button>
+                        </div>
+                      </div>
+                      <div className="col-span-3 text-right font-bold text-red-600">
+                        {item.precisaComprar ? `+${item.falta} ${item.unidade}` : <CheckCircle className="text-emerald-500 ml-auto" />}
                       </div>
                     </div>
-                  );
-                })}
-              </>
-            )}
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -987,75 +908,87 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
             {subTabCadastro === 'produtos' && (
               <>
                 <Card className={`bg-white border transition-colors ${editingId ? 'border-orange-200 ring-2 ring-orange-100' : 'border-blue-100'}`}>
-                  <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${editingId ? 'text-orange-600' : 'text-gray-700'}`}>{editingId ? <><Edit size={16}/> Editando Produto</> : <><Plus size={16} className="text-blue-600"/> Novo Produto</>}</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                    {/* 1. MANTÉM O NOME */}
-<div className="col-span-2 md:col-span-2">
-  <input type="text" placeholder="Nome" className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.nome} onChange={e => setNovoItem({...novoItem, nome: e.target.value})} />
-</div>
+  <h3 className={`text-sm font-bold mb-4 flex items-center gap-2 ${editingId ? 'text-orange-600' : 'text-gray-700'}`}>
+    {editingId ? <><Edit size={16}/> Editando Produto</> : <><Plus size={16} className="text-blue-600"/> Novo Produto</>}
+  </h3>
+  
+  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    {/* 1. NOME */}
+    <div className="col-span-2 md:col-span-2">
+      <input type="text" placeholder="Nome" className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.nome} onChange={e => setNovoItem({...novoItem, nome: e.target.value})} />
+    </div>
 
-{/* 2. MUDA O "MIN" PARA UM CAMPO MAIS ESTREITO */}
-<div className="col-span-1">
-  <input type="number" placeholder="Mín" className="w-full p-2 border border-red-100 bg-red-50/20 rounded text-sm outline-none" value={novoItem.qtd_minima} onChange={e => setNovoItem({...novoItem, qtd_minima: e.target.value})} />
-</div>
+    {/* 2. MÍNIMO */}
+    <div className="col-span-1">
+      <input type="number" placeholder="Mín" className="w-full p-2 border border-red-100 bg-red-50/20 rounded text-sm outline-none" value={novoItem.qtd_minima} onChange={e => setNovoItem({...novoItem, qtd_minima: e.target.value})} />
+    </div>
 
-{/* 3. ADICIONA ESTE NOVO SELECT DE UNIDADE AQUI */}
-<div className="col-span-1">
-  <select 
-    className="w-full p-2 border border-gray-200 rounded text-sm outline-none bg-white font-medium"
-    value={novoItem.unidade} 
-    onChange={e => setNovoItem({...novoItem, unidade: e.target.value})}
-  >
-    <option value="kg">KG</option>
-    <option value="un">UN</option>
-    <option value="pct">PCT</option>
-    <option value="garrafa">GARRAFA</option>
-    <option value="barras">BARRAS</option>
-    <option value="balde">BALDE</option>
-    <option value="lt">LT</option>
-    <option value="g">G</option>
-  </select>
-</div>
+    {/* 3. UNIDADE */}
+    <div className="col-span-1">
+      <select 
+        className="w-full p-2 border border-gray-200 rounded text-sm outline-none bg-white font-medium"
+        value={novoItem.unidade} 
+        onChange={e => setNovoItem({...novoItem, unidade: e.target.value})}
+      >
+        <option value="kg">KG</option>
+        <option value="un">UN</option>
+        <option value="pct">PCT</option>
+        <option value="balde">BALDE</option>
+        <option value="lt">LT</option>
+        <option value="g">G</option>
+      </select>
+    </div>
 
+    {/* 4. LOCAL/FORNECEDOR */}
+    <div className="col-span-2 md:col-span-1">
+      <select className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.local} onChange={e => setNovoItem({...novoItem, local: e.target.value})}>
+        {ordemRota.map(l => <option key={l} value={l}>{l}</option>)}
+      </select>
+    </div>
 
-{/* 4. MANTÉM O FORNECEDOR (Mas agora ele ocupa 1 coluna no grid) */}
-<div className="col-span-2 md:col-span-1">
-  <select className="w-full p-2 border border-gray-200 rounded text-sm outline-none" value={novoItem.local} onChange={e => setNovoItem({...novoItem, local: e.target.value})}>
-    {ordemRota.map(l => <option key={l} value={l}>{l}</option>)}
-    {!ordemRota.includes(novoItem.local) && <option value={novoItem.local}>{novoItem.local}</option>}
-  </select>
-</div>
-{/* COULE O CÓDIGO NOVO AQUI ABAIXO: */}
-<div className="col-span-2 md:col-span-5 grid grid-cols-1 md:grid-cols-2 gap-3 mt-2 p-3 bg-blue-50/30 rounded-lg border border-blue-100">
-  <div>
-    <label className="text-[10px] font-bold text-blue-600 uppercase">Matéria-prima Usada (Opcional)</label>
-    <select 
-      className="w-full p-2 border border-blue-200 rounded text-sm outline-none bg-white"
-      value={novoItem.item_pai_id || ''} 
-      onChange={e => setNovoItem({...novoItem, item_pai_id: e.target.value ? Number(e.target.value) : null})}
-    >
-      <option value="">Nenhum (Item de compra direta)</option>
-      {insumos.filter(i => i.id !== editingId).map(i => (
-        <option key={i.id} value={i.id}>{i.nome}</option>
-      ))}
-    </select>
+    {/* 5. CAMPOS DE RENDIMENTO (AMARELO) */}
+    <div className="col-span-2 md:col-span-4 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-amber-50/30 rounded-lg border border-amber-100">
+      <div>
+        <label className="text-[10px] font-bold text-amber-600 uppercase block">Matéria-prima (Produzido de:)</label>
+        <select 
+          className="w-full p-2 border border-amber-200 rounded text-sm outline-none bg-white"
+          value={novoItem.item_pai_id || ''} 
+          onChange={e => setNovoItem({...novoItem, item_pai_id: e.target.value ? Number(e.target.value) : null})}
+        >
+          <option value="">Nenhum (Item de compra direta)</option>
+          {insumos.filter(i => i.id !== editingId).map(i => (
+            <option key={i.id} value={i.id}>{i.nome}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="text-[10px] font-bold text-amber-600 uppercase block">Fator de Rendimento</label>
+        <input 
+          type="number" step="0.01"
+          placeholder="Ex: 2.0"
+          className="w-full p-2 border border-amber-200 rounded text-sm outline-none bg-white" 
+          value={novoItem.fator_rendimento} 
+          onChange={e => setNovoItem({...novoItem, fator_rendimento: e.target.value})} 
+        />
+      </div>
+    </div>
+
+    {/* 6. BOTÃO SALVAR */}
+    <div className="col-span-2 md:col-span-1 flex items-end gap-2">
+      {editingId && (
+        <button onClick={() => setEditingId(null)} className="flex-1 h-10 bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 flex items-center justify-center">
+          <XCircle size={20} />
+        </button>
+      )}
+      <button 
+        onClick={handleSalvarOuAtualizarItem} 
+        className={`flex-1 h-10 font-bold rounded-lg text-sm text-white shadow-md transition-all ${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+      >
+        {editingId ? 'Salvar' : 'Adicionar'}
+      </button>
+    </div>
   </div>
-  <div>
-    <label className="text-[10px] font-bold text-blue-600 uppercase">Fator de Rendimento</label>
-    <input 
-      type="number" step="0.01"
-      className="w-full p-2 border border-blue-200 rounded text-sm outline-none" 
-      value={novoItem.fator_rendimento} 
-      onChange={e => setNovoItem({...novoItem, fator_rendimento: e.target.value})} 
-    />
-  </div>
-</div>
-                    <div className="col-span-2 md:col-span-1 flex gap-2">
-                      {editingId && <button onClick={() => setEditingId(null)} className="flex-1 bg-gray-100 text-gray-500 rounded"><XCircle size={18} className="mx-auto" /></button>}
-                      <button onClick={handleSalvarOuAtualizarItem} className={`flex-1 font-bold rounded text-sm text-white ${editingId ? 'bg-orange-500' : 'bg-blue-600'}`}>{editingId ? 'Ok' : 'Add'}</button>
-                    </div>
-                  </div>
-                </Card>
+</Card>
                 <div className="space-y-3">
                   <div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar produto..." className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 text-sm outline-none" value={filtroEstoque} onChange={e => setFiltroEstoque(e.target.value)} /></div>
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1098,5 +1031,3 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     </div>
   );
 }
-
-
