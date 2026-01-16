@@ -141,7 +141,15 @@ export default function GestaoCompras() {
   
   // Estados de Cadastro
   const [subTabCadastro, setSubTabCadastro] = useState('produtos');
-  const [novoItem, setNovoItem] = useState({ nome: '', qtd_atual: 0, qtd_minima: 0, unidade: 'kg', local: 'Moranguinho' });
+  const [novoItem, setNovoItem] = useState({ 
+  nome: '', 
+  qtd_atual: 0, 
+  qtd_minima: 0, 
+  unidade: 'kg', 
+  local: 'Moranguinho',
+  item_pai_id: null,      // Link para o item bruto
+  fator_rendimento: 1    // Multiplicador
+});
   const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', telefone: '', endereco: '', obs: '' });
   
   // Filtros
@@ -297,7 +305,7 @@ const handleExcluirHistorico = async (id) => {
   });
 };
 
-  // --- LÓGICA DE DADOS ---
+// logica de dados
   const dadosLista = useMemo(() => {
     if (!isToday) {
       const registroHistorico = historico.find(h => h.data === formatDateKey(selectedDate));
@@ -324,25 +332,46 @@ const handleExcluirHistorico = async (id) => {
     let totalItensParaComprar = 0;
     const itensParaComprarFlat = [];
 
+    // --- NOVO CÁLCULO COM RENDIMENTO ---
+
+    // 1. Mapa de faltas iniciais (quanto falta de cada um sem contar os processados)
+    const faltasPorId = {};
     insumos.forEach(item => {
-  const localKey = ordemRota.includes(item.local) ? item.local : 'Outros';
-  const faltaCalculada = parseFloat(item.qtd_minima) - parseFloat(item.qtd_atual);
-  
-  let faltaFinal = faltaCalculada > 0 ? faltaCalculada : 0;
+      faltasPorId[item.id] = Math.max(0, parseFloat(item.qtd_minima) - parseFloat(item.qtd_atual));
+    });
 
-  // Lógica de Arredondamento para itens inteiros (Balde, Pacote, Unidade)
-  const unidadesFracionadas = ['kg', 'g', 'kg.', 'g.'];
-  if (faltaFinal > 0 && !unidadesFracionadas.includes(item.unidade.toLowerCase())) {
-    faltaFinal = Math.ceil(faltaFinal); // Arredonda 0.1 para 1, por exemplo.
-  }
+    // 2. Somar a necessidade dos processados nos itens brutos (Matéria-prima)
+    insumos.forEach(item => {
+      // Se o item tem um pai (ex: Bacon Processado aponta para Bacon Cru) e falta estoque
+      if (item.item_pai_id && faltasPorId[item.id] > 0) {
+        const fator = parseFloat(item.fator_rendimento) || 1;
+        const extraNecessario = faltasPorId[item.id] * fator;
+        
+        // Adiciona essa carga no item pai (o cru)
+        if (faltasPorId[item.item_pai_id] !== undefined) {
+          faltasPorId[item.item_pai_id] += extraNecessario;
+        }
+      }
+    });
 
-  const precisaComprar = faltaFinal > 0;
-  if (precisaComprar) {
-    totalItensParaComprar++;
-    itensParaComprarFlat.push({ ...item, falta: faltaFinal });
-  }
-  agrupado[localKey].push({ ...item, falta: faltaFinal, precisaComprar });
-});
+    // 3. Montar o objeto final para a tela
+    insumos.forEach(item => {
+      const localKey = ordemRota.includes(item.local) ? item.local : 'Outros';
+      let faltaFinal = faltasPorId[item.id];
+
+      // Lógica de Arredondamento para itens inteiros (Balde, Unidade, etc)
+      const unidadesFracionadas = ['kg', 'g', 'kg.', 'g.'];
+      if (faltaFinal > 0 && !unidadesFracionadas.includes(item.unidade.toLowerCase())) {
+        faltaFinal = Math.ceil(faltaFinal);
+      }
+
+      const precisaComprar = faltaFinal > 0;
+      if (precisaComprar) {
+        totalItensParaComprar++;
+        itensParaComprarFlat.push({ ...item, falta: faltaFinal });
+      }
+      agrupado[localKey].push({ ...item, falta: faltaFinal, precisaComprar });
+    });
 
     const locaisExibicao = ordemRota.filter(l => agrupado[l].length > 0);
     if (agrupado['Outros'].length > 0) locaisExibicao.push('Outros');
@@ -530,12 +559,14 @@ const handleExcluirHistorico = async (id) => {
     if (!novoItem.nome) return;
     
     const itemPayload = {
-        nome: novoItem.nome,
-        qtd_atual: parseFloat(novoItem.qtd_atual) || 0,
-        qtd_minima: parseFloat(novoItem.qtd_minima) || 0,
-        unidade: novoItem.unidade,
-        local: novoItem.local
-    };
+    nome: novoItem.nome,
+    qtd_atual: parseFloat(novoItem.qtd_atual) || 0,
+    qtd_minima: parseFloat(novoItem.qtd_minima) || 0,
+    unidade: novoItem.unidade,
+    local: novoItem.local,
+    item_pai_id: novoItem.item_pai_id,      // ADICIONE ESTA LINHA
+    fator_rendimento: parseFloat(novoItem.fator_rendimento) || 1 // ADICIONE ESTA LINHA
+};
 
     if (editingId) {
       const { error } = await supabase.from('insumos').update(itemPayload).eq('id', editingId);
