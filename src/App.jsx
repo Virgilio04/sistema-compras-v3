@@ -935,16 +935,17 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
           ? Number(item.falta).toFixed(1) 
           : Math.ceil(item.falta)
         } 
-        <span className="text-[10px] ml-1">{item.unidade}</span>
+        <span className="font-bold text-gray-700">{item.nome}: {item.falta} {item.unidade}</span>
       </div>
 
       {/* LÓGICA DE RENDIMENTO: Se o item for Carne Moída (Pai), ele mostra quanto vai render de Recheio (Filho) */}
-      {insumos.some(filho => filho.item_pai_id === item.id) && (
-        <div className="text-[9px] text-emerald-600 font-black mt-1 leading-tight animate-pulse uppercase">
-          Rende ~{ (item.falta / 0.33).toFixed(1) }kg pronto
-        </div>
-      )}
+      {/* Se for um item que tem "filhos" (ou seja, é matéria-prima) */}
+  {insumos.some(filho => filho.item_pai_id === item.id) && (
+    <div className="text-[10px] text-emerald-600 font-bold mt-1 italic">
+      👉 Rendimento estimado: { (item.falta / 0.33).toFixed(1) }kg de Recheio
     </div>
+  )}
+</div>
   ) : (
     <CheckCircle size={20} className="text-emerald-500 ml-auto" />
   )}
