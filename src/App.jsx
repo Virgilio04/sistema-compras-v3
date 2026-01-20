@@ -377,10 +377,11 @@ const handleExcluirHistorico = async (id) => {
     // 1. Mapa de faltas iniciais (Considerando a Intensidade do Dia)
 const faltasPorId = {};
 insumos.forEach(item => {
-  // O sistema calcula o mínimo necessário baseado no botão que você clicou
-  const minimoDinamico = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
+ // ESSA LINHA ABAIXO É A CHAVE: Ela diz ao sistema para multiplicar o mínimo
+  const minimoAjustado = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
   
-  faltasPorId[item.id] = Math.max(0, minimoDinamico - parseFloat(item.qtd_atual));
+  // E agora usamos o 'minimoAjustado' em vez de 'item.qtd_minima'
+  faltasPorId[item.id] = Math.max(0, minimoAjustado - parseFloat(item.qtd_atual));
 });
 
     // 2. Somar a necessidade dos processados nos itens brutos (Matéria-prima)
