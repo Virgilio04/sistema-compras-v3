@@ -235,7 +235,7 @@ const handleCopiarOrdemCozinha = () => {
 
       texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
       texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
-      texto += `✅ Produzir para completar: *${filho.qtd_minima} ${filho.unidade}* no pote\n`;
+      texto += `✅ Produzir para completar: *${filho.qtd_minima} ${filho.unidade}*\n`;
       texto += `------------------\n`;
     }
   });
@@ -243,7 +243,7 @@ const handleCopiarOrdemCozinha = () => {
   if (!temProducao) {
     texto += `✅ Todos os potes estão abastecidos!\n`;
   } else {
-    texto += `\n_Obs: Produza apenas o necessário para completar os potes._`;
+    texto += `\n_Obs: Produza apenas o necessário._`;
   }
 
   navigator.clipboard.writeText(texto).then(() => {
