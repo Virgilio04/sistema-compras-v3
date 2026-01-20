@@ -213,40 +213,41 @@ export default function GestaoCompras() {
   });
 };
 
-const handleCopiarOrdemCozinha = (registro) => {
-  let texto = `*👨‍🍳 ORDEM DE PREPARO - ${registro.data}*\n`;
+const handleCopiarOrdemCozinha = () => {
+  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO (INTELIGENTE) - ${formatDateKey(new Date())}*\n`;
   texto += `----------------------------------\n\n`;
 
-  // Filtramos apenas os itens que rendem algo (os que são "pais")
-  const itensParaProduzir = registro.itens.filter(item => {
-    // Busca se existe algum item no cadastro que usa este item como matéria-prima
-    return insumos.some(filho => filho.item_pai_id === insumos.find(i => i.nome === item.nome)?.id);
-  });
+  // Filtra itens que são produzidos internamente (os "Filhos")
+  const itensParaProduzir = insumos.filter(item => item.item_pai_id !== null);
+  let temProducao = false;
 
-  if (itensParaProduzir.length === 0) {
-    showToast('Nada para processar hoje!', 'info');
-    return;
-  }
+  itensParaProduzir.forEach(filho => {
+    // Calcula quanto falta para atingir o estoque mínimo do pote
+    const faltaNoPote = Math.max(0, parseFloat(filho.qtd_minima) - parseFloat(filho.qtd_atual));
 
-  itensParaProduzir.forEach(item => {
-    const itemOriginal = insumos.find(i => i.nome === item.nome);
-    // Busca o "filho" (ex: Recheio) para saber o fator e o nome do que será produzido
-    const produtoFinal = insumos.find(f => f.item_pai_id === itemOriginal?.id);
-    
-    if (produtoFinal) {
-      const rendimento = (parseFloat(item.qtd) / parseFloat(produtoFinal.fator_rendimento)).toFixed(1);
+    if (faltaNoPote > 0) {
+      temProducao = true;
+      const pai = insumos.find(i => i.id === filho.item_pai_id);
+      const fator = parseFloat(filho.fator_rendimento) || 1;
       
-      texto += `*🔹 ${item.nome.toUpperCase()}*\n`;
-      texto += `👉 Usar: ${parseFloat(item.qtd)} ${item.unidade}\n`;
-      texto += `✅ Entregar: *${rendimento} ${produtoFinal.unidade} de ${produtoFinal.nome}*\n`;
+      // Calcula quanto de matéria-prima bruta deve ser retirada da geladeira
+      const quantoPegarDoBruto = (faltaNoPote * fator).toFixed(1);
+
+      texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
+      texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
+      texto += `✅ Produzir para completar: *${filho.qtd_minima} ${filho.unidade}* no pote\n`;
       texto += `------------------\n`;
     }
   });
 
-  texto += `\n_Bom trabalho, equipe!_`;
+  if (!temProducao) {
+    texto += `✅ Todos os potes estão abastecidos!\n`;
+  } else {
+    texto += `\n_Obs: Produza apenas o necessário para completar os potes._`;
+  }
 
   navigator.clipboard.writeText(texto).then(() => {
-    showToast('Ordem para cozinheiros copiada!', 'success');
+    showToast('Ordem de reposição copiada!', 'success');
   });
 };
 
