@@ -213,6 +213,43 @@ export default function GestaoCompras() {
   });
 };
 
+const handleCopiarOrdemCozinha = (registro) => {
+  let texto = `*👨‍🍳 ORDEM DE PREPARO - ${registro.data}*\n`;
+  texto += `----------------------------------\n\n`;
+
+  // Filtramos apenas os itens que rendem algo (os que são "pais")
+  const itensParaProduzir = registro.itens.filter(item => {
+    // Busca se existe algum item no cadastro que usa este item como matéria-prima
+    return insumos.some(filho => filho.item_pai_id === insumos.find(i => i.nome === item.nome)?.id);
+  });
+
+  if (itensParaProduzir.length === 0) {
+    showToast('Nada para processar hoje!', 'info');
+    return;
+  }
+
+  itensParaProduzir.forEach(item => {
+    const itemOriginal = insumos.find(i => i.nome === item.nome);
+    // Busca o "filho" (ex: Recheio) para saber o fator e o nome do que será produzido
+    const produtoFinal = insumos.find(f => f.item_pai_id === itemOriginal?.id);
+    
+    if (produtoFinal) {
+      const rendimento = (parseFloat(item.qtd) / parseFloat(produtoFinal.fator_rendimento)).toFixed(1);
+      
+      texto += `*🔹 ${item.nome.toUpperCase()}*\n`;
+      texto += `👉 Usar: ${parseFloat(item.qtd)} ${item.unidade}\n`;
+      texto += `✅ Entregar: *${rendimento} ${produtoFinal.unidade} de ${produtoFinal.nome}*\n`;
+      texto += `------------------\n`;
+    }
+  });
+
+  texto += `\n_Bom trabalho, equipe!_`;
+
+  navigator.clipboard.writeText(texto).then(() => {
+    showToast('Ordem para cozinheiros copiada!', 'success');
+  });
+};
+
   // ADICIONE ESTA FUNÇÃO NOVA AQUI:
   const toggleCarrinho = async (item) => {
   // Se o item já está no carrinho, não fazemos nada ou desmarcamos (opcional)
@@ -906,12 +943,12 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
   >
       <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
   </button>
-  {/* BOTÃO PARA GERAR A FOLHA DE PAPEL */}
+  {/* BOTÃO PARA O GRUPO DOS COZINHEIROS (Substituindo o PDF) */}
 <button 
-  onClick={() => imprimirResumoChefe(registro)} 
-  className="w-full bg-gray-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+  onClick={() => handleCopiarOrdemCozinha(registro)} 
+  className="w-full bg-slate-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
 >
-    <Printer size={16} /> Gerar Folha de Conferência (PDF)
+    <Share2 size={16} /> Enviar Ordem p/ Cozinha (WhatsApp)
 </button>
                           <div className="border-t border-gray-100 my-3"></div>
                           <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
