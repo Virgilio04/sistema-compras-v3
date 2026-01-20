@@ -193,6 +193,8 @@ export default function GestaoCompras() {
   let texto = `*RESUMO PARA CONFERÊNCIA - ${registro.data}*\n`;
   texto += `----------------------------------\n\n`;
 
+  const [intensidadeDia, setIntensidadeDia] = useState(1);
+
   registro.itens.forEach(item => {
     // Pegamos os dados que salvamos no histórico
     const tinha = item.estoque_no_dia || 0;
@@ -372,11 +374,14 @@ const handleExcluirHistorico = async (id) => {
 
     // --- NOVO CÁLCULO COM RENDIMENTO ---
 
-    // 1. Mapa de faltas iniciais (quanto falta de cada um sem contar os processados)
-    const faltasPorId = {};
-    insumos.forEach(item => {
-      faltasPorId[item.id] = Math.max(0, parseFloat(item.qtd_minima) - parseFloat(item.qtd_atual));
-    });
+    // 1. Mapa de faltas iniciais (Considerando a Intensidade do Dia)
+const faltasPorId = {};
+insumos.forEach(item => {
+  // O sistema calcula o mínimo necessário baseado no botão que você clicou
+  const minimoDinamico = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
+  
+  faltasPorId[item.id] = Math.max(0, minimoDinamico - parseFloat(item.qtd_atual));
+});
 
     // 2. Somar a necessidade dos processados nos itens brutos (Matéria-prima)
     insumos.forEach(item => {
@@ -759,6 +764,22 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
             
             {isToday && (
               <>
+              {/* PAINEL DE INTENSIDADE DO MOVIMENTO */}
+    <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-4 shadow-sm">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] font-black text-amber-700 uppercase flex items-center gap-1">
+          <TrendingUp size={14}/> Volume de Vendas
+        </span>
+        <Badge color={intensidadeDia > 1.5 ? 'red' : intensidadeDia > 1 ? 'orange' : 'yellow'}>
+          Mínimos em {intensidadeDia}x
+        </Badge>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        <button onClick={() => setIntensidadeDia(1)} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${intensidadeDia === 1 ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-white text-amber-600 border-amber-200'}`}>SEG-QUI</button>
+        <button onClick={() => setIntensidadeDia(1.5)} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${intensidadeDia === 1.5 ? 'bg-amber-500 text-white border-amber-600 shadow-sm' : 'bg-white text-amber-600 border-amber-200'}`}>SEX-DOM</button>
+        <button onClick={() => setIntensidadeDia(2)} className={`py-2 text-[10px] font-bold rounded-lg border transition-all ${intensidadeDia === 2 ? 'bg-red-600 text-white border-red-700 shadow-sm' : 'bg-white text-red-600 border-red-200'}`}>FERIADO</button>
+      </div>
+    </div>
                 <div className="relative mb-2">
                     <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                     <input 
