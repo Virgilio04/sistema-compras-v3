@@ -179,6 +179,8 @@ export default function GestaoCompras() {
   const handlePrevDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate()-1); setSelectedDate(d); };
   const handleNextDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate()+1); setSelectedDate(d); };
 
+    const [intensidadeDia, setIntensidadeDia] = useState(1);
+
   const toggleHistoryExpand = (id) => {
     if (expandedHistoryId === id) { setExpandedHistoryId(null); } 
     else { setExpandedHistoryId(id); setSelectedFornecedores([]); }
@@ -192,8 +194,6 @@ export default function GestaoCompras() {
   const handleCopiarResumoChefe = (registro) => {
   let texto = `*RESUMO PARA CONFERÊNCIA - ${registro.data}*\n`;
   texto += `----------------------------------\n\n`;
-
-  const [intensidadeDia, setIntensidadeDia] = useState(1);
 
   registro.itens.forEach(item => {
     // Pegamos os dados que salvamos no histórico
