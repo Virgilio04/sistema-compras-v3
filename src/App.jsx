@@ -421,7 +421,7 @@ insumos.forEach(item => {
     if (agrupado['Outros'].length > 0) locaisExibicao.push('Outros');
 
     return { grupos: agrupado, locais: locaisExibicao, totalItensParaComprar, itensFlat: itensParaComprarFlat, hasData: true };
-  }, [insumos, ordemRota, selectedDate, historico, isToday]);
+  }, [insumos, ordemRota, selectedDate, historico, isToday, intensidadeDia]);
 
   const dadosDashboard = useMemo(() => {
     const itemStats = {};
