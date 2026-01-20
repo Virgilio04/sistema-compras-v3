@@ -233,8 +233,8 @@ const handleCopiarOrdemCozinha = () => {
       // Calcula quanto de matéria-prima bruta deve ser retirada da geladeira
       const quantoPegarDoBruto = (faltaNoPote * fator).toFixed(1);
 
-      texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
-      texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
+      texto += `* ${filho.nome.toUpperCase()}*\n`;
+      texto += ` Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
       texto += `✅ Produzir para completar: *${filho.qtd_minima} ${filho.unidade}* no pote\n`;
       texto += `------------------\n`;
     }
