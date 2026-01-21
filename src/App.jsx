@@ -867,15 +867,24 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                             </div>
 
                             {/* COLUNA 2: BOTÕES +/- */}
-                            <div className="col-span-3 flex justify-center items-center" onClick={(e) => e.stopPropagation()}>
-                              {isToday ? (
-                                <div className="flex items-center bg-white border border-gray-200 rounded h-8">
-                                  <button onClick={() => handleAtualizarEstoque(item.id, Math.max(0, parseFloat(item.qtd_atual) - 1))} className="w-7 h-full text-gray-400">-</button>
-                                  <input type="number" className="w-8 text-center font-bold text-gray-700 text-xs bg-transparent outline-none" value={item.qtd_atual} onChange={(e) => handleAtualizarEstoque(item.id, e.target.value)} />
-                                  <button onClick={() => handleAtualizarEstoque(item.id, parseFloat(item.qtd_atual) + 1)} className="w-7 h-full text-gray-400">+</button>
-                                </div>
-                              ) : <span className="text-[10px] text-gray-400 italic">Registrado</span>}
-                            </div>
+<div className="col-span-3 flex flex-col justify-center items-center" onClick={(e) => e.stopPropagation()}>
+  {isToday ? (
+    <>
+      <div className="flex items-center bg-white border border-gray-200 rounded h-8">
+        <button onClick={() => handleAtualizarEstoque(item.id, Math.max(0, parseFloat(item.qtd_atual) - 1))} className="w-7 h-full text-gray-400">-</button>
+        <input type="number" className="w-8 text-center font-bold text-gray-700 text-xs bg-transparent outline-none" value={item.qtd_atual} onChange={(e) => handleAtualizarEstoque(item.id, e.target.value)} />
+        <button onClick={() => handleAtualizarEstoque(item.id, parseFloat(item.qtd_atual) + 1)} className="w-7 h-full text-gray-400">+</button>
+      </div>
+
+      {/* NOVO: AVISO DE CAPACIDADE DE PRODUÇÃO (Só aparece para o item CRU) */}
+      {insumos.filter(f => f.item_pai_id === item.id).length > 0 && parseFloat(item.qtd_atual) > 0 && (
+        <div className="text-[9px] text-blue-600 font-bold mt-1 leading-tight text-center animate-pulse">
+          Rende ~{(parseFloat(item.qtd_atual) / (parseFloat(insumos.find(f => f.item_pai_id === item.id).fator_rendimento) || 1)).toFixed(1)}kg de pote
+        </div>
+      )}
+    </>
+  ) : <span className="text-[10px] text-gray-400 italic">Registrado</span>}
+</div>
 
                             {/* COLUNA 3: COMPRA + RENDIMENTO ESTIMADO */}
                             <div className="col-span-3 text-right">
