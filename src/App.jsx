@@ -167,9 +167,6 @@ export default function GestaoCompras() {
   const [modalAction, setModalAction] = useState(null);
   const [itemParaExcluir, setItemParaExcluir] = useState(null);
 
-const [selecionadosHistorico, setSelecionadosHistorico] = useState([]);
-const [modoExclusao, setModoExclusao] = useState(false);
-
   const showToast = (message, type = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
@@ -182,7 +179,7 @@ const [modoExclusao, setModoExclusao] = useState(false);
   const handlePrevDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate()-1); setSelectedDate(d); };
   const handleNextDay = () => { const d = new Date(selectedDate); d.setDate(d.getDate()+1); setSelectedDate(d); };
 
-  const [intensidadeDia, setIntensidadeDia] = useState(1);
+    const [intensidadeDia, setIntensidadeDia] = useState(1);
 
   const toggleHistoryExpand = (id) => {
     if (expandedHistoryId === id) { setExpandedHistoryId(null); } 
@@ -193,31 +190,6 @@ const [modoExclusao, setModoExclusao] = useState(false);
     if (selectedFornecedores.includes(fornecedor)) { setSelectedFornecedores(selectedFornecedores.filter(f => f !== fornecedor)); } 
     else { setSelectedFornecedores([...selectedFornecedores, fornecedor]); }
   };
-
-const handleExcluirVariosHistoricos = async () => {
-  if (selecionadosHistorico.length === 0) return;
-  
-  if (!confirm(`Deseja excluir ${selecionadosHistorico.length} relatório(s) permanentemente?`)) return;
-
-  try {
-    // Deleta no Supabase todos os IDs que estão no array de selecionados
-    const { error } = await supabase
-      .from('historico_compras')
-      .delete()
-      .in('id', selecionadosHistorico);
-
-    if (error) throw error;
-
-    // Atualiza a tela localmente
-    setHistorico(prev => prev.filter(item => !selecionadosHistorico.includes(item.id)));
-    setSelecionadosHistorico([]);
-    setModoExclusao(false);
-    showToast(`${selecionadosHistorico.length} excluídos com sucesso!`);
-  } catch (error) {
-    console.error(error);
-    showToast('Erro ao excluir em massa', 'error');
-  }
-};
 
   const handleCopiarResumoChefe = (registro) => {
   let texto = `*RESUMO PARA CONFERÊNCIA - ${registro.data}*\n`;
@@ -934,173 +906,116 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
         )}
 
         {activeTab === 'historico' && (
-    <div className="space-y-4 animate-fade-in">
-      
-      {/* BARRA DE FERRAMENTAS NO TOPO */}
-      <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-purple-100 shadow-sm sticky top-[150px] z-10">
-        <div className="flex items-center gap-2">
-          <History className="text-purple-600" size={20} />
-          <h3 className="font-bold text-gray-700 text-sm">Histórico</h3>
-        </div>
-        
-        <div className="flex gap-2">
-          {!modoExclusao ? (
-            <button 
-              onClick={() => setModoExclusao(true)}
-              className="text-[10px] font-black text-purple-600 bg-purple-50 px-3 py-2 rounded-lg hover:bg-purple-100 transition-all flex items-center gap-1 uppercase"
-            >
-              <Edit size={14} /> Seleção em Massa
-            </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => {
-                  const todosIds = historico.map(h => h.id);
-                  setSelecionadosHistorico(selecionadosHistorico.length === historico.length ? [] : todosIds);
-                }}
-                className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-2 rounded-lg"
-              >
-                {selecionadosHistorico.length === historico.length ? 'Desmarcar' : 'Todos'}
-              </button>
-              <button 
-                onClick={handleExcluirVariosHistoricos}
-                disabled={selecionadosHistorico.length === 0}
-                className={`text-[10px] font-bold px-3 py-2 rounded-lg flex items-center gap-1 uppercase transition-all ${
-                  selecionadosHistorico.length > 0 ? 'bg-red-600 text-white shadow-lg' : 'bg-gray-100 text-gray-400'
-                }`}
-              >
-                <Trash2 size={14} /> Excluir ({selecionadosHistorico.length})
-              </button>
-              <button 
-                onClick={() => { setModoExclusao(false); setSelecionadosHistorico([]); }}
-                className="p-2 text-gray-400 hover:bg-gray-100 rounded-full"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* LISTAGEM DOS RELATÓRIOS */}
-      {historico.length === 0 ? (
-          <div className="text-center py-12 text-gray-400"><History size={48} className="mx-auto mb-2 opacity-20" /><p>Nenhum histórico de compras.</p></div>
-      ) : (
-        historico.map((registro) => {
-          const isExpanded = expandedHistoryId === registro.id;
-          const isSelected = selecionadosHistorico.includes(registro.id);
-          const fornecedoresDoRegistro = [...new Set(registro.itens.map(i => i.local))];
-
-          return (
-            <div 
-              key={registro.id} 
-              className={`bg-white rounded-xl shadow-sm border transition-all overflow-hidden ${
-                isSelected ? 'border-red-300 ring-2 ring-red-50 bg-red-50/10' : 'border-purple-100'
-              }`}
-            >
-              <div className="flex items-center">
-                {/* O quadradinho de seleção só aparece no modo exclusão */}
-                {modoExclusao && (
-                  <div 
-                    onClick={() => {
-                      setSelecionadosHistorico(prev => 
-                        isSelected ? prev.filter(id => id !== registro.id) : [...prev, registro.id]
-                      );
-                    }}
-                    className="pl-4 cursor-pointer"
-                  >
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                      isSelected ? 'bg-red-600 border-red-600 shadow-sm' : 'bg-white border-gray-200'
-                    }`}>
-                      {isSelected && <Check size={16} className="text-white" />}
-                    </div>
-                  </div>
-                )}
-
-                <button 
-                  onClick={() => !modoExclusao && toggleHistoryExpand(registro.id)} 
-                  className="w-full p-4 flex justify-between items-center bg-transparent"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-red-100 text-red-600' : 'bg-purple-100 text-purple-700'}`}>
-                      <Calendar size={20} />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3>
-                      <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Clock size={10} /> {registro.hora} • {registro.totalItens} itens
-                      </p>
-                    </div>
-                  </div>
-
-                  {!modoExclusao && (
-                    <div className="flex items-center gap-4">
-                      <div 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExcluirHistorico(registro.id);
-                        }} 
-                        className="text-gray-300 hover:text-red-500 transition-colors p-2"
-                      >
-                        <Trash2 size={20} />
-                      </div>
-                      <div className="text-gray-400">
-                        {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                      </div>
-                    </div>
-                  )}
-                </button>
-              </div>
-
-              {/* CONTEÚDO QUANDO ABRE O RELATÓRIO */}
-              {isExpanded && !modoExclusao && (
-                <div className="bg-purple-50/30 border-t border-purple-50 p-4">
-                  <div className="mb-6 bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
-                    <p className="text-[10px] uppercase font-bold text-gray-400 mb-2 flex items-center gap-1"><Share2 size={12}/> Opções de Envio</p>
-                    <button onClick={() => handleCopiarListaGeral(registro)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3">
-                        <Copy size={16} /> Copiar Relatório Completo
-                    </button>
-                    <button onClick={() => handleCopiarResumoChefe(registro)} className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3">
-                        <FileText size={16} /> Resumo para Chefe
-                    </button>
-                    <div className="border-t border-gray-100 my-3"></div>
-                    <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                        {fornecedoresDoRegistro.map(forn => {
-                            const isSelectedForn = selectedFornecedores.includes(forn);
-                            return (
-                                <button key={forn} onClick={() => toggleFornecedorSelection(forn)} className={`border text-xs font-bold py-2 px-2 rounded-lg flex items-center gap-2 transition-colors ${isSelectedForn ? 'bg-purple-100 border-purple-300 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelectedForn ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>{isSelectedForn && <Check size={10} className="text-white" />}</div>{forn}
-                                </button>
-                            )
-                        })}
-                    </div>
-                    <button onClick={() => handleCopiarSelecionados(registro)} disabled={selectedFornecedores.length === 0} className={`w-full font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all text-sm ${selectedFornecedores.length > 0 ? 'bg-purple-600 hover:bg-purple-700 text-white transform hover:scale-[1.02]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
-                        <Copy size={16} /> Copiar Selecionados
-                    </button>
-                  </div>
-                  <div className="space-y-2">
-                    {registro.itens.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-purple-100 shadow-sm">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-700">{item.nome}</span>
-                          <span className="text-[10px] text-gray-400 uppercase italic">Tinha: {item.estoque_no_dia} | Mín: {item.minimo_esperado}</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span>
-                          <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">+{item.qtd} {item.unidade}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })
-      )}
+          <div className="space-y-4 animate-fade-in">
+            {historico.length === 0 ? (
+               <div className="text-center py-12 text-gray-400"><History size={48} className="mx-auto mb-2 opacity-20" /><p>Nenhum histórico de compras.</p></div>
+            ) : (
+              historico.map((registro) => {
+                const isExpanded = expandedHistoryId === registro.id;
+                const fornecedoresDoRegistro = [...new Set(registro.itens.map(i => i.local))];
+                return (
+                  <div key={registro.id} className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
+                    <button 
+  onClick={() => toggleHistoryExpand(registro.id)} 
+  className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors"
+>
+  {/* LADO ESQUERDO: INFORMAÇÕES DO RELATÓRIO */}
+  <div className="flex items-center gap-3">
+    <div className="bg-purple-100 text-purple-700 p-2 rounded-lg">
+      <Calendar size={20} />
     </div>
-  )}
+    <div className="text-left">
+      <h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3>
+      <p className="text-xs text-gray-500 flex items-center gap-1">
+        <Clock size={10} /> {registro.hora} • {registro.totalItens} itens
+      </p>
+    </div>
+  </div>
+
+  {/* LADO DIREITO: BOTÕES DE AÇÃO */}
+  <div className="flex items-center gap-4">
+    {/* ÍCONE DE LIXEIRA PARA EXCLUIR */}
+    <div 
+      onClick={(e) => {
+        e.stopPropagation(); // Impede que o card abra ao clicar na lixeira
+        handleExcluirHistorico(registro.id);
+      }} 
+      className="text-gray-300 hover:text-red-500 transition-colors p-2"
+      title="Excluir este relatório"
+    >
+      <Trash2 size={20} />
+    </div>
+    
+    {/* SETA DE EXPANDIR */}
+    <div className="text-gray-400">
+      {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+    </div>
+  </div>
+</button>
+                    {isExpanded && (
+                      <div className="bg-purple-50/30 border-t border-purple-50 p-4">
+                        <div className="mb-6 bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
+                          <p className="text-[10px] uppercase font-bold text-gray-400 mb-2 flex items-center gap-1"><Share2 size={12}/> Opções de Envio</p>
+                          <button onClick={() => handleCopiarListaGeral(registro)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3">
+                              <Copy size={16} /> Copiar Relatório Completo (Gerente)
+                          </button>
+                          {/* NOVO BOTÃO PARA A CHEFE (Adicione este aqui) */}
+  <button 
+    onClick={() => handleCopiarResumoChefe(registro)} 
+    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+  >
+      <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
+  </button>
+  {/* BOTÃO PARA O GRUPO DOS COZINHEIROS (Substituindo o PDF) */}
+<button 
+  onClick={() => handleCopiarOrdemCozinha(registro)} 
+  className="w-full bg-slate-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+>
+    <Share2 size={16} /> Enviar Ordem p/ Cozinha (WhatsApp)
+</button>
+                          <div className="border-t border-gray-100 my-3"></div>
+                          <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                              {fornecedoresDoRegistro.map(forn => {
+                                  const isSelected = selectedFornecedores.includes(forn);
+                                  return (
+                                      <button key={forn} onClick={() => toggleFornecedorSelection(forn)} className={`border text-xs font-bold py-2 px-2 rounded-lg flex items-center gap-2 transition-colors ${isSelected ? 'bg-purple-100 border-purple-300 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>{isSelected && <Check size={10} className="text-white" />}</div>{forn}
+                                      </button>
+                                  )
+                              })}
+                          </div>
+                          <button onClick={() => handleCopiarSelecionados(registro)} disabled={selectedFornecedores.length === 0} className={`w-full font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all text-sm ${selectedFornecedores.length > 0 ? 'bg-purple-600 hover:bg-purple-700 text-white transform hover:scale-[1.02]' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}>
+                              <Copy size={16} /> Copiar Selecionados
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {registro.itens.map((item, idx) => (
+  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-purple-100 shadow-sm">
+    <div className="flex flex-col">
+      <span className="text-sm font-bold text-gray-700">{item.nome}</span>
+      <span className="text-[10px] text-gray-400 uppercase italic">
+        Tinha: {item.estoque_no_dia} | Mínimo: {item.minimo_esperado}
+      </span>
+    </div>
+    
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span>
+      <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+        +{item.qtd} {item.unidade}
+      </span>
+    </div>
+  </div>
+))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
 
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
