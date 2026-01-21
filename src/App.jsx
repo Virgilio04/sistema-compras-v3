@@ -400,38 +400,48 @@ const handleExcluirHistorico = async (id) => {
     let totalItensParaComprar = 0;
     const itensParaComprarFlat = [];
 
-    // --- NOVO CÁLCULO COM RENDIMENTO ---
+    // --- NOVO CÁLCULO INTELIGENTE (OPÇÃO 2) ---
 
-    // 1. Mapa de faltas iniciais (Considerando a Intensidade do Dia)
-const faltasPorId = {};
-insumos.forEach(item => {
- // ESSA LINHA ABAIXO É A CHAVE: Ela diz ao sistema para multiplicar o mínimo
-  const minimoAjustado = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
-  
-  // E agora usamos o 'minimoAjustado' em vez de 'item.qtd_minima'
-  faltasPorId[item.id] = Math.max(0, minimoAjustado - parseFloat(item.qtd_atual));
-});
-
-    // 2. Somar a necessidade dos processados nos itens brutos (Matéria-prima)
+    // 1. Primeiro, calculamos a falta real apenas dos itens "Filhos" (Processados)
+    const faltasPorId = {};
     insumos.forEach(item => {
-      // Se o item tem um pai (ex: Bacon Processado aponta para Bacon Cru) e falta estoque
-      if (item.item_pai_id && faltasPorId[item.id] > 0) {
-        const fator = parseFloat(item.fator_rendimento) || 1;
-        const extraNecessario = faltasPorId[item.id] * fator;
+      const minimoDinamico = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
+      faltasPorId[item.id] = Math.max(0, minimoDinamico - parseFloat(item.qtd_atual));
+    });
+
+    // 2. Agora calculamos a falta dos itens "Pai" (Cru) subtraindo o que ele já tem da carga que o filho exige
+    insumos.forEach(item => {
+      // Procuramos se este item é pai de alguém
+      const filhosDesteItem = insumos.filter(f => f.item_pai_id === item.id);
+      
+      if (filhosDesteItem.length > 0) {
+        let cargaNecessariaDosFilhos = 0;
         
-        // Adiciona essa carga no item pai (o cru)
-        if (faltasPorId[item.item_pai_id] !== undefined) {
-          faltasPorId[item.item_pai_id] += extraNecessario;
-        }
+        filhosDesteItem.forEach(filho => {
+          const minFilho = parseFloat(filho.qtd_minima) * (isToday ? intensidadeDia : 1);
+          const faltaNoPote = Math.max(0, minFilho - parseFloat(filho.qtd_atual));
+          cargaNecessariaDosFilhos += faltaNoPote * (parseFloat(filho.fator_rendimento) || 1);
+        });
+
+        // LÓGICA DA OPÇÃO 2:
+        // Vemos quanto sobra na peça bruta depois de "abastecer" os potes
+        const estoqueBrutoAtual = parseFloat(item.qtd_atual);
+        const sobraAposProducao = Math.max(0, estoqueBrutoAtual - cargaNecessariaDosFilhos);
+        
+        // O mínimo de segurança que você quer manter na geladeira para este item pai
+        const minSegurancaPai = parseFloat(item.qtd_minima) * (isToday ? intensidadeDia : 1);
+
+        // Só falta comprar se a sobra for menor que o mínimo de segurança
+        faltasPorId[item.id] = Math.max(0, minSegurancaPai - sobraAposProducao);
       }
     });
 
-    // 3. Montar o objeto final para a tela
+    // 3. Montar o objeto final para a tela (Igual ao anterior, mas com a nova conta)
     insumos.forEach(item => {
       const localKey = ordemRota.includes(item.local) ? item.local : 'Outros';
       let faltaFinal = faltasPorId[item.id];
 
-      // Lógica de Arredondamento para itens inteiros (Balde, Unidade, etc)
+      // Arredondamento para itens inteiros
       const unidadesFracionadas = ['kg', 'g', 'kg.', 'g.'];
       if (faltaFinal > 0 && !unidadesFracionadas.includes(item.unidade.toLowerCase())) {
         faltaFinal = Math.ceil(faltaFinal);
