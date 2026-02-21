@@ -253,6 +253,24 @@ const handleCopiarOrdemCozinha = () => {
   });
 };
 
+const calcularAlerta = (item, todosOsInsumos) => {
+  // Se NÃO for um item de produção (não tem pai), usa a regra normal de falta
+  if (!item.item_pai_id) {
+    return item.precisaComprar;
+  }
+
+  // Se FOR produção, buscamos o item "Pai" (Matéria-prima)
+  const pai = todosOsInsumos.find(i => i.id === item.item_pai_id);
+  if (!pai) return item.precisaComprar;
+
+  // Lógica: O que eu tenho de Bruto, depois de processado, atinge o mínimo do Pote?
+  const rendimentoEstimado = (parseFloat(pai.qtd_atual) / (parseFloat(item.fator_rendimento) || 1));
+  const estoqueSuficiente = rendimentoEstimado >= parseFloat(item.qtd_minima);
+
+  // Retorna TRUE se mesmo processando tudo o que tenho, o pote ainda ficará abaixo do mínimo
+  return !estoqueSuficiente;
+};
+
   // ADICIONE ESTA FUNÇÃO NOVA AQUI:
   const toggleCarrinho = async (item) => {
   // Se o item já está no carrinho, não fazemos nada ou desmarcamos (opcional)
