@@ -877,7 +877,9 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                               )}
                               <div>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.nome}</span>
+                                  <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+  {item.nome} - TESTE VISUAL
+</span>
                                   {item.item_pai_id && <Badge color="orange">Preparo Interno</Badge>}
                                 </div>
                                 <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
