@@ -520,6 +520,10 @@ insumos.forEach(item => {
          showToast('Lista salva no histórico!', 'success');
          setTimeout(() => setActiveTab('historico'), 500);
       } else {
+         // --- CÓDIGO DE TESTE PARA DESCOBRIR O ERRO ---
+         console.error("🚨 ERRO SUPABASE:", error);
+         alert("O Supabase recusou: " + (error?.message || JSON.stringify(error)));
+         
          showToast('Erro ao salvar histórico', 'error');
       }
     }
