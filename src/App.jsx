@@ -607,8 +607,9 @@ insumos.forEach(item => {
     qtd_atual: parseFloat(novoItem.qtd_atual) || 0,
     qtd_minima: parseFloat(novoItem.qtd_minima) || 0,
     unidade: novoItem.unidade,
-    local: novoItem.local
-    // Note que removi o item_pai_id e o fator_rendimento
+    local: novoItem.local,
+    item_pai_id: novoItem.item_pai_id,      // ADICIONE ESTA LINHA
+    fator_rendimento: parseFloat(novoItem.fator_rendimento) || 1 // ADICIONE ESTA LINHA
 };
 
     if (editingId) {
@@ -619,37 +620,19 @@ insumos.forEach(item => {
           showToast('Produto atualizado!');
       }
     } else {
-  const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
-  
-  if (error) {
-    if (error.code === '23505') {
-      showToast('⚠️ Produto já cadastrado!', 'error');
-    } else {
-  console.log("Tentando salvar:", itemPayload); // Veja o que está saindo
-  const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
-  
-  if (error) {
-    console.error("Erro real do Supabase:", error.message, error.details, error.hint);
-    showToast(`Erro: ${error.message}`, 'error');
-    return;
-  }
-
-  if (data) {
-    setInsumos([...insumos, data[0]]);
-    showToast('Produto adicionado!');
-    // ... restante do código de limpeza
-  }
-}
-    // Limpa o formulário apenas em caso de sucesso
+      const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
+      if (!error && data) {
+          setInsumos([...insumos, data[0]]);
+          showToast('Produto adicionado!');
+      }
+    }
     setNovoItem({ 
-      nome: '', 
-      qtd_atual: 0, 
-      qtd_minima: 0, 
-      unidade: 'kg', 
-      local: novoItem.local 
-    });
-  }
-}
+  nome: '', 
+  qtd_atual: 0, 
+  qtd_minima: 0, 
+  unidade: 'kg', 
+  local: novoItem.local // Mantém o valor que já estava selecionado
+});
 
 if (editingId) setEditingId(null);
 showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
