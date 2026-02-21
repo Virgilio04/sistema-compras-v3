@@ -859,70 +859,80 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                         <div className="flex items-center gap-2"><span className="bg-emerald-600 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm">{index + 1}</span><h3 className="font-bold text-gray-700 text-sm uppercase">{local}</h3></div>
                       </div>
                       <div className="divide-y divide-gray-100">
-                        {itensParaMostrar.map(item => (
-                          <div 
-                            key={item.id} 
-                            onClick={() => isToday && item.precisaComprar ? toggleCarrinho(item) : null}
-                            className={`grid grid-cols-12 p-2 items-center text-sm transition-all cursor-pointer border-b border-gray-50
-                              ${item.precisaComprar ? 'bg-red-50/20' : 'bg-white'}
-                              ${itensNoCarrinho.includes(item.id) ? 'opacity-40 bg-gray-100' : ''}
-                            `}
-                          >
-                            {/* COLUNA 1: NOME + ETIQUETA */}
-                            <div className="col-span-6 pr-1 leading-tight flex items-center gap-2">
-                              {isToday && item.precisaComprar && (
-                                <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${itensNoCarrinho.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-300'}`}>
-                                  {itensNoCarrinho.includes(item.id) && <Check size={14} className="text-white" />}
+                        {itensParaMostrar.map(item => {
+                          // Chamamos a função segura para definir se fica vermelho
+                          const mostrarAlertaRed = calcularAlerta(item, insumos);
+                          const isProducao = !!item.item_pai_id; // Verifica se é item feito na cozinha
+
+                          return (
+                            <div 
+                              key={item.id} 
+                              // Só permite clicar (marcar no carrinho) se NÃO for item de produção
+                              onClick={() => !isProducao && isToday && item.precisaComprar ? toggleCarrinho(item) : null}
+                              className={`grid grid-cols-12 p-2 items-center text-sm transition-all border-b border-gray-50
+                                ${mostrarAlertaRed ? 'bg-red-50/20' : 'bg-white'}
+                                ${itensNoCarrinho.includes(item.id) ? 'opacity-40 bg-gray-100' : ''}
+                                ${isProducao ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50'}
+                              `}
+                            >
+                              {/* COLUNA 1: NOME + ETIQUETA */}
+                              <div className="col-span-6 pr-1 leading-tight flex items-center gap-2">
+                                {/* Mostra a checkbox do carrinho apenas se NÃO for produção */}
+                                {isToday && item.precisaComprar && !isProducao && (
+                                  <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${itensNoCarrinho.includes(item.id) ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-300'}`}>
+                                    {itensNoCarrinho.includes(item.id) && <Check size={14} className="text-white" />}
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.nome}</span>
+                                    {item.item_pai_id && <Badge color="orange">Preparo Interno</Badge>}
+                                  </div>
+                                  <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
                                 </div>
-                              )}
-                              <div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.nome}</span>
-                                  {item.item_pai_id && <Badge color="orange">Preparo Interno</Badge>}
-                                </div>
-                                <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
+                              </div>
+
+                              {/* COLUNA 2: BOTÕES +/- */}
+                              <div className="col-span-3 flex flex-col justify-center items-center" onClick={(e) => e.stopPropagation()}>
+                                {isToday ? (
+                                  <>
+                                    <div className="flex items-center bg-white border border-gray-200 rounded h-8">
+                                      <button onClick={() => handleAtualizarEstoque(item.id, Math.max(0, parseFloat(item.qtd_atual) - 1))} className="w-7 h-full text-gray-400">-</button>
+                                      <input type="number" className="w-8 text-center font-bold text-gray-700 text-xs bg-transparent outline-none" value={item.qtd_atual} onChange={(e) => handleAtualizarEstoque(item.id, e.target.value)} />
+                                      <button onClick={() => handleAtualizarEstoque(item.id, parseFloat(item.qtd_atual) + 1)} className="w-7 h-full text-gray-400">+</button>
+                                    </div>
+                                    {/* NOVO: AVISO DE CAPACIDADE DE PRODUÇÃO (Só aparece para o item CRU) */}
+                                    {insumos.filter(f => f.item_pai_id === item.id).length > 0 && parseFloat(item.qtd_atual) > 0 && (
+                                      <div className="text-[9px] text-blue-600 font-bold mt-1 leading-tight text-center animate-pulse">
+                                        Rende ~{(parseFloat(item.qtd_atual) / (parseFloat(insumos.find(f => f.item_pai_id === item.id).fator_rendimento) || 1)).toFixed(1)}kg de pote
+                                      </div>
+                                    )}
+                                  </>
+                                ) : <span className="text-[10px] text-gray-400 italic">Registrado</span>}
+                              </div>
+
+                              {/* COLUNA 3: COMPRA + RENDIMENTO ESTIMADO */}
+                              <div className="col-span-3 text-right">
+                                {item.precisaComprar && !isProducao ? (
+                                  <div className="flex flex-col items-end">
+                                    <div className={`px-2 py-0.5 rounded font-bold text-xs ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}`}>
+                                      +{['kg', 'g'].includes(item.unidade.toLowerCase()) ? Number(item.falta).toFixed(1) : Math.ceil(item.falta)} {item.unidade}
+                                    </div>
+                                    
+                                    {/* LÓGICA DE RENDIMENTO: Se este item é pai de alguém (ex: Carne Moída) */}
+                                    {insumos.filter(f => f.item_pai_id === item.id).map(filho => (
+                                      <div key={filho.id} className="text-[9px] text-emerald-600 font-black mt-0.5 leading-tight italic">
+                                        Rende ~{(item.falta / (parseFloat(filho.fator_rendimento) || 1)).toFixed(1)}{filho.unidade} de {filho.nome}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : isProducao && mostrarAlertaRed ? (
+                                  <span className="text-[9px] text-red-500 font-black uppercase">Falta Matéria</span>
+                                ) : <CheckCircle size={18} className="text-emerald-400 ml-auto" />}
                               </div>
                             </div>
-
-                            {/* COLUNA 2: BOTÕES +/- */}
-<div className="col-span-3 flex flex-col justify-center items-center" onClick={(e) => e.stopPropagation()}>
-  {isToday ? (
-    <>
-      <div className="flex items-center bg-white border border-gray-200 rounded h-8">
-        <button onClick={() => handleAtualizarEstoque(item.id, Math.max(0, parseFloat(item.qtd_atual) - 1))} className="w-7 h-full text-gray-400">-</button>
-        <input type="number" className="w-8 text-center font-bold text-gray-700 text-xs bg-transparent outline-none" value={item.qtd_atual} onChange={(e) => handleAtualizarEstoque(item.id, e.target.value)} />
-        <button onClick={() => handleAtualizarEstoque(item.id, parseFloat(item.qtd_atual) + 1)} className="w-7 h-full text-gray-400">+</button>
-      </div>
-
-      {/* NOVO: AVISO DE CAPACIDADE DE PRODUÇÃO (Só aparece para o item CRU) */}
-      {insumos.filter(f => f.item_pai_id === item.id).length > 0 && parseFloat(item.qtd_atual) > 0 && (
-        <div className="text-[9px] text-blue-600 font-bold mt-1 leading-tight text-center animate-pulse">
-          Rende ~{(parseFloat(item.qtd_atual) / (parseFloat(insumos.find(f => f.item_pai_id === item.id).fator_rendimento) || 1)).toFixed(1)}kg de pote
-        </div>
-      )}
-    </>
-  ) : <span className="text-[10px] text-gray-400 italic">Registrado</span>}
-</div>
-
-                            {/* COLUNA 3: COMPRA + RENDIMENTO ESTIMADO */}
-                            <div className="col-span-3 text-right">
-                              {item.precisaComprar ? (
-                                <div className="flex flex-col items-end">
-                                  <div className={`px-2 py-0.5 rounded font-bold text-xs ${itensNoCarrinho.includes(item.id) ? 'bg-gray-200 text-gray-500' : 'bg-red-100 text-red-700'}`}>
-                                    +{['kg', 'g'].includes(item.unidade.toLowerCase()) ? Number(item.falta).toFixed(1) : Math.ceil(item.falta)} {item.unidade}
-                                  </div>
-                                  
-                                  {/* LÓGICA DE RENDIMENTO: Se este item é pai de alguém (ex: Carne Moída) */}
-                                  {insumos.filter(f => f.item_pai_id === item.id).map(filho => (
-                                    <div key={filho.id} className="text-[9px] text-emerald-600 font-black mt-0.5 leading-tight italic">
-                                      Rende ~{(item.falta / (parseFloat(filho.fator_rendimento) || 1)).toFixed(1)}{filho.unidade} de {filho.nome}
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : <CheckCircle size={18} className="text-emerald-400 ml-auto" />}
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
