@@ -608,9 +608,8 @@ insumos.forEach(item => {
     qtd_minima: parseFloat(novoItem.qtd_minima) || 0,
     unidade: novoItem.unidade,
     local: novoItem.local,
-    // Se o ID estiver vazio, enviamos NULL (que o banco aceita), em vez de "" (que o banco rejeita)
     item_pai_id: novoItem.item_pai_id && novoItem.item_pai_id !== "" ? novoItem.item_pai_id : null,
-    fator_rendimento: parseFloat(novoItem.fator_rendimento) || 1
+    // remova a linha do fator_rendimento aqui se não for criar a coluna no banco
 };
 
     if (editingId) {
