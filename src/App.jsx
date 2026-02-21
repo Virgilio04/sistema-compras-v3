@@ -620,19 +620,30 @@ insumos.forEach(item => {
           showToast('Produto atualizado!');
       }
     } else {
-      const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
-      if (!error && data) {
-          setInsumos([...insumos, data[0]]);
-          showToast('Produto adicionado!');
-      }
+  const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
+  
+  if (error) {
+    if (error.code === '23505') {
+      showToast('⚠️ Produto já cadastrado!', 'error');
+    } else {
+      showToast('Erro ao salvar no banco', 'error');
     }
+    return; // O return impede que o código abaixo limpe o formulário
+  }
+
+  if (data) {
+    setInsumos([...insumos, data[0]]);
+    showToast('Produto adicionado!');
+    // Limpa o formulário apenas em caso de sucesso
     setNovoItem({ 
-  nome: '', 
-  qtd_atual: 0, 
-  qtd_minima: 0, 
-  unidade: 'kg', 
-  local: novoItem.local // Mantém o valor que já estava selecionado
-});
+      nome: '', 
+      qtd_atual: 0, 
+      qtd_minima: 0, 
+      unidade: 'kg', 
+      local: novoItem.local 
+    });
+  }
+}
 
 if (editingId) setEditingId(null);
 showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
