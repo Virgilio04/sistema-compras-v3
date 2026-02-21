@@ -626,14 +626,21 @@ insumos.forEach(item => {
     if (error.code === '23505') {
       showToast('⚠️ Produto já cadastrado!', 'error');
     } else {
-      showToast('Erro ao salvar no banco', 'error');
-    }
-    return; // O return impede que o código abaixo limpe o formulário
+  console.log("Tentando salvar:", itemPayload); // Veja o que está saindo
+  const { data, error } = await supabase.from('insumos').insert([itemPayload]).select();
+  
+  if (error) {
+    console.error("Erro real do Supabase:", error.message, error.details, error.hint);
+    showToast(`Erro: ${error.message}`, 'error');
+    return;
   }
 
   if (data) {
     setInsumos([...insumos, data[0]]);
     showToast('Produto adicionado!');
+    // ... restante do código de limpeza
+  }
+}
     // Limpa o formulário apenas em caso de sucesso
     setNovoItem({ 
       nome: '', 
