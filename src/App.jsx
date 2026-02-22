@@ -250,7 +250,7 @@ const handleCopiarOrdemCozinha = (registro) => {
 
       texto += `*🔹 ${histItem.nome.toUpperCase()}*\n`;
       texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
-      texto += `✅ Produzir para completar meta: *${minimoDoDia} ${histItem.unidade}*\n`;
+      texto += `✅ Produzir para completar: *${minimoDoDia} ${histItem.unidade}*\n`;
       texto += `------------------\n`;
     }
   });
@@ -258,7 +258,7 @@ const handleCopiarOrdemCozinha = (registro) => {
   if (!temProducao) {
     texto += `✅ Todos os potes estavam abastecidos!\n`;
   } else {
-    texto += `\n_Obs: Produção baseada no fechamento do dia._`;
+    texto += `\n_Obs: Produza apenas o necessário._`;
   }
 
   navigator.clipboard.writeText(texto).then(() => {
