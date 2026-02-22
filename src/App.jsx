@@ -223,7 +223,7 @@ export default function GestaoCompras() {
 };
 
 const handleCopiarOrdemCozinha = () => {
-  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO (INTELIGENTE) - ${formatDateKey(new Date())}*\n`;
+  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO (INTELIGENTE) - ${formatDateKey(selectedDate)}*\n`;
   texto += `----------------------------------\n\n`;
 
   // Filtra itens que são produzidos internamente (os "Filhos")
@@ -231,8 +231,11 @@ const handleCopiarOrdemCozinha = () => {
   let temProducao = false;
 
   itensParaProduzir.forEach(filho => {
-    // Calcula quanto falta para atingir o estoque mínimo do pote
-    const faltaNoPote = Math.max(0, parseFloat(filho.qtd_minima) - parseFloat(filho.qtd_atual));
+    // NOVO: Calcula o mínimo já com o multiplicador do dia (Sexta, Feriado, etc)
+    const minimoAjustado = parseFloat(filho.qtd_minima) * (isToday ? intensidadeDia : 1);
+    
+    // Calcula quanto falta para atingir o estoque mínimo do pote (usando o valor ajustado)
+    const faltaNoPote = Math.max(0, minimoAjustado - parseFloat(filho.qtd_atual));
 
     if (faltaNoPote > 0) {
       temProducao = true;
@@ -244,15 +247,15 @@ const handleCopiarOrdemCozinha = () => {
 
       texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
       texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
-      texto += `✅ Produzir para completar: *${filho.qtd_minima} ${filho.unidade} processado*\n`;
+      texto += `✅ Produzir para completar meta: *${minimoAjustado} ${filho.unidade}*\n`;
       texto += `------------------\n`;
     }
   });
 
   if (!temProducao) {
-    texto += `✅ Todos os potes estão abastecidos!\n`;
+    texto += `✅ Todos os potes estão abastecidos para a demanda do dia!\n`;
   } else {
-    texto += `\n_Obs: Produza apenas o necessário._`;
+    texto += `\n_Obs: Produza apenas o necessário para bater a meta acima._`;
   }
 
   navigator.clipboard.writeText(texto).then(() => {
