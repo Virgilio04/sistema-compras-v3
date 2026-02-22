@@ -261,20 +261,26 @@ const handleCopiarOrdemCozinha = () => {
 };
 
 const calcularAlerta = (item, todosOsInsumos) => {
-  // Se NÃO for um item de produção (não tem pai), usa a regra normal de falta
-  if (!item.item_pai_id) {
-    return item.precisaComprar;
+  // 1. Se o próprio item (pote) já bateu a meta, não precisa de alerta! Fica OK.
+  if (!item.precisaComprar) {
+    return false;
   }
 
-  // Se FOR produção, buscamos o item "Pai" (Matéria-prima)
+  // 2. Se NÃO for um item de produção (não tem pai) e precisa comprar, dá o alerta normal
+  if (!item.item_pai_id) {
+    return true;
+  }
+
+  // 3. Se FOR produção E estiver faltando no pote, buscamos a matéria-prima (Cru)
   const pai = todosOsInsumos.find(i => i.id === item.item_pai_id);
-  if (!pai) return item.precisaComprar;
+  if (!pai) return true; // Se der erro e não achar o pai, apita alerta por segurança
 
-  // Lógica: O que eu tenho de Bruto, depois de processado, atinge o mínimo do Pote?
+  // 4. LÓGICA CORRIGIDA: 
+  // O que eu tenho de Bruto, depois de processado, consegue cobrir o que FALTA no pote?
   const rendimentoEstimado = (parseFloat(pai.qtd_atual) / (parseFloat(item.fator_rendimento) || 1));
-  const estoqueSuficiente = rendimentoEstimado >= parseFloat(item.qtd_minima);
+  const estoqueSuficiente = rendimentoEstimado >= parseFloat(item.falta);
 
-  // Retorna TRUE se mesmo processando tudo o que tenho, o pote ainda ficará abaixo do mínimo
+  // Retorna TRUE (vermelho) apenas se o rendimento do cru não for suficiente para cobrir a FALTA do pote
   return !estoqueSuficiente;
 };
 
