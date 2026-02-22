@@ -735,6 +735,17 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
     await supabase.from('insumos').update({ qtd_atual: novaQtd }).eq('id', id);
   };
 
+  // Função para trocar o fornecedor rapidamente no Diário
+  const handleChangeFornecedorDiario = async (id, novoLocal) => {
+    // 1. Atualiza na tela instantaneamente (o item vai "pular" de grupo)
+    setInsumos(insumos.map(i => i.id === id ? { ...i, local: novoLocal } : i));
+    
+    // 2. Salva no banco para que amanhã ele lembre dessa sua nova preferência
+    await supabase.from('insumos').update({ local: novoLocal }).eq('id', id);
+    
+    showToast(`Movido para ${novoLocal}`);
+  };
+
   const handleMarcarComoOk = async (id) => {
     if (!isToday) return;
     const item = insumos.find(i => i.id === id);
@@ -946,12 +957,28 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                                     {itensNoCarrinho.includes(item.id) && <Check size={14} className="text-white" />}
                                   </div>
                                 )}
-                                <div>
+                                <div className="flex flex-col">
                                   <div className="flex items-center gap-2 flex-wrap">
                                     <span className={`font-bold ${itensNoCarrinho.includes(item.id) ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.nome}</span>
                                     {item.item_pai_id && <Badge color="orange">Preparo Interno</Badge>}
                                   </div>
-                                  <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
+                                  
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] text-gray-400">Min: {item.qtd_minima} {item.unidade}</span>
+                                    
+                                    {/* NOVO: Dropdown Rápido de Fornecedor */}
+                                    {isToday && !isProducao && (
+                                      <select 
+                                        value={item.local}
+                                        onChange={(e) => handleChangeFornecedorDiario(item.id, e.target.value)}
+                                        onClick={(e) => e.stopPropagation()} // Impede de marcar o item como OK ao clicar na seta
+                                        className="text-[9px] font-bold text-purple-600 bg-purple-50 border border-purple-100 rounded px-1 py-0.5 outline-none cursor-pointer hover:bg-purple-100 transition-colors"
+                                      >
+                                        {ordemRota.map(forn => <option key={forn} value={forn}>{forn}</option>)}
+                                      </select>
+                                    )}
+                                  </div>
+
                                 </div>
                               </div>
 
@@ -1145,7 +1172,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
             )}
           </div>
         )}
-        
+
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
              <div className="grid grid-cols-2 gap-4">
