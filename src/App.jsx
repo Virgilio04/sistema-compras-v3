@@ -222,44 +222,47 @@ export default function GestaoCompras() {
   });
 };
 
-const handleCopiarOrdemCozinha = () => {
-  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO - ${formatDateKey(selectedDate)}*\n`;
+const handleCopiarOrdemCozinha = (registro) => {
+  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO - ${registro.data}*\n`;
   texto += `----------------------------------\n\n`;
 
-  // Filtra itens que são produzidos internamente (os "Filhos")
-  const itensParaProduzir = insumos.filter(item => item.item_pai_id !== null);
+  // Em vez de olhar pro estoque de HOJE, olha para o que foi SALVO no histórico
+  const itensProduzidosNoRegistro = registro.itens.filter(histItem => {
+     const insumoLive = insumos.find(i => i.nome === histItem.nome);
+     return insumoLive && insumoLive.item_pai_id !== null;
+  });
+
   let temProducao = false;
 
-  itensParaProduzir.forEach(filho => {
-    // NOVO: Calcula o mínimo já com o multiplicador do dia (Sexta, Feriado, etc)
-    const minimoAjustado = parseFloat(filho.qtd_minima) * (isToday ? intensidadeDia : 1);
-    
-    // Calcula quanto falta para atingir o estoque mínimo do pote (usando o valor ajustado)
-    const faltaNoPote = Math.max(0, minimoAjustado - parseFloat(filho.qtd_atual));
+  itensProduzidosNoRegistro.forEach(histItem => {
+    // Puxa a meta e o estoque exatamente como estavam no dia salvo
+    const minimoDoDia = parseFloat(histItem.minimo_esperado);
+    const tinhaNoDia = parseFloat(histItem.estoque_no_dia);
+    const faltaNoPote = Math.max(0, minimoDoDia - tinhaNoDia);
 
     if (faltaNoPote > 0) {
       temProducao = true;
-      const pai = insumos.find(i => i.id === filho.item_pai_id);
-      const fator = parseFloat(filho.fator_rendimento) || 1;
+      const insumoLive = insumos.find(i => i.nome === histItem.nome);
+      const pai = insumos.find(i => i.id === insumoLive.item_pai_id);
+      const fator = parseFloat(insumoLive.fator_rendimento) || 1;
       
-      // Calcula quanto de matéria-prima bruta deve ser retirada da geladeira
       const quantoPegarDoBruto = (faltaNoPote * fator).toFixed(1);
 
-      texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
+      texto += `*🔹 ${histItem.nome.toUpperCase()}*\n`;
       texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
-      texto += `✅ Produzir para completar: *${minimoAjustado} ${filho.unidade}*\n`;
+      texto += `✅ Produzir para completar meta: *${minimoDoDia} ${histItem.unidade}*\n`;
       texto += `------------------\n`;
     }
   });
 
   if (!temProducao) {
-    texto += `✅ Todos os potes estão abastecidos para a demanda do dia!\n`;
+    texto += `✅ Todos os potes estavam abastecidos!\n`;
   } else {
-    texto += `\n_Obs: Produza apenas o necessário._`;
+    texto += `\n_Obs: Produção baseada no fechamento do dia._`;
   }
 
   navigator.clipboard.writeText(texto).then(() => {
-    showToast('Ordem de reposição copiada!', 'success');
+    showToast('Ordem copiada do histórico!', 'success');
   });
 };
 
@@ -522,7 +525,9 @@ insumos.forEach(item => {
           nome: item.nome,
           qtd: (parseFloat(item.falta) || 0).toFixed(2),
           estoque_no_dia: item.qtd_atual,
-          minimo_esperado: item.qtd_minima,
+          // A MÁGICA: Salva o mínimo já multiplicado pela intensidade daquele dia!
+          minimo_esperado: parseFloat(item.qtd_minima) * intensidadeDia, 
+          multiplicador_usado: intensidadeDia,
           unidade: item.unidade,
           local: item.local
         }))
