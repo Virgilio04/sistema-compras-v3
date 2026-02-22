@@ -168,6 +168,7 @@ export default function GestaoCompras() {
   
   const [expandedHistoryId, setExpandedHistoryId] = useState(null);
   const [selectedFornecedores, setSelectedFornecedores] = useState([]);
+  const [selectedHistoryIds, setSelectedHistoryIds] = useState([]);
   
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
   const [modalOpen, setModalOpen] = useState(false);
@@ -353,6 +354,39 @@ const handleExcluirHistorico = async (id) => {
     showToast('Erro ao excluir relatório', 'error');
   }
 };
+
+// Função para marcar/desmarcar um histórico
+  const toggleHistorySelection = (id, e) => {
+    e.stopPropagation(); // Impede que o card abra ao clicar na caixa de seleção
+    if (selectedHistoryIds.includes(id)) {
+      setSelectedHistoryIds(selectedHistoryIds.filter(selId => selId !== id));
+    } else {
+      setSelectedHistoryIds([...selectedHistoryIds, id]);
+    }
+  };
+
+  // Função que apaga todos os selecionados de uma vez no Supabase
+  const handleExcluirHistoricosSelecionados = async () => {
+    if (!confirm(`Tem a certeza que deseja excluir ${selectedHistoryIds.length} relatórios?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('historico_compras')
+        .delete()
+        .in('id', selectedHistoryIds); // O Supabase permite apagar vários com o .in()
+
+      if (error) throw error;
+
+      showToast(`${selectedHistoryIds.length} relatórios excluídos!`, 'success');
+      
+      // Atualiza o ecrã removendo os que foram apagados
+      setHistorico(prev => prev.filter(item => !selectedHistoryIds.includes(item.id)));
+      setSelectedHistoryIds([]); // Limpa a seleção
+    } catch (error) {
+      console.error('Erro ao excluir em lote:', error);
+      showToast('Erro ao excluir relatórios', 'error');
+    }
+  };
 
   const copiarPedidoWhatsApp = (data, fornecedorAlvo) => {
   // 1. Cabeçalho do texto
@@ -973,51 +1007,79 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
 
         {activeTab === 'historico' && (
           <div className="space-y-4 animate-fade-in">
+            
+            {/* NOVO: PAINEL DE EXCLUSÃO EM LOTE (Só aparece se tiver algo selecionado) */}
+            {selectedHistoryIds && selectedHistoryIds.length > 0 && (
+              <div className="bg-red-50 p-3 rounded-xl border border-red-200 flex justify-between items-center animate-fade-in shadow-sm">
+                <span className="text-red-700 font-bold text-sm flex items-center gap-2">
+                  <CheckCircle size={16} /> {selectedHistoryIds.length} selecionado(s)
+                </span>
+                <button 
+                  onClick={handleExcluirHistoricosSelecionados}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-sm flex items-center gap-2 transition-all"
+                >
+                  <Trash2 size={16} /> Excluir Selecionados
+                </button>
+              </div>
+            )}
+
             {historico.length === 0 ? (
                <div className="text-center py-12 text-gray-400"><History size={48} className="mx-auto mb-2 opacity-20" /><p>Nenhum histórico de compras.</p></div>
             ) : (
               historico.map((registro) => {
                 const isExpanded = expandedHistoryId === registro.id;
                 const fornecedoresDoRegistro = [...new Set(registro.itens.map(i => i.local))];
-                return (
-                  <div key={registro.id} className="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
-                    <button 
-  onClick={() => toggleHistoryExpand(registro.id)} 
-  className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors"
->
-  {/* LADO ESQUERDO: INFORMAÇÕES DO RELATÓRIO */}
-  <div className="flex items-center gap-3">
-    <div className="bg-purple-100 text-purple-700 p-2 rounded-lg">
-      <Calendar size={20} />
-    </div>
-    <div className="text-left">
-      <h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3>
-      <p className="text-xs text-gray-500 flex items-center gap-1">
-        <Clock size={10} /> {registro.hora} • {registro.totalItens} itens
-      </p>
-    </div>
-  </div>
+                // Verifica se este histórico está marcado para exclusão
+                const isSelected = selectedHistoryIds && selectedHistoryIds.includes(registro.id); 
 
-  {/* LADO DIREITO: BOTÕES DE AÇÃO */}
-  <div className="flex items-center gap-4">
-    {/* ÍCONE DE LIXEIRA PARA EXCLUIR */}
-    <div 
-      onClick={(e) => {
-        e.stopPropagation(); // Impede que o card abra ao clicar na lixeira
-        handleExcluirHistorico(registro.id);
-      }} 
-      className="text-gray-300 hover:text-red-500 transition-colors p-2"
-      title="Excluir este relatório"
-    >
-      <Trash2 size={20} />
-    </div>
-    
-    {/* SETA DE EXPANDIR */}
-    <div className="text-gray-400">
-      {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-    </div>
-  </div>
-</button>
+                return (
+                  <div key={registro.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${isSelected ? 'border-red-300 ring-2 ring-red-100' : 'border-purple-100'}`}>
+                    <button 
+                      onClick={() => toggleHistoryExpand(registro.id)} 
+                      className="w-full p-4 flex justify-between items-center bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      {/* LADO ESQUERDO: INFORMAÇÕES DO RELATÓRIO */}
+                      <div className="flex items-center gap-3">
+                        
+                        {/* NOVA CAIXA DE SELEÇÃO AQUI */}
+                        <div 
+                          onClick={(e) => toggleHistorySelection(registro.id, e)}
+                          className={`w-5 h-5 rounded border flex items-center justify-center transition-colors flex-shrink-0 mr-1 ${isSelected ? 'bg-red-500 border-red-500' : 'bg-white border-gray-300'}`}
+                        >
+                          {isSelected && <Check size={14} className="text-white" />}
+                        </div>
+
+                        <div className="bg-purple-100 text-purple-700 p-2 rounded-lg">
+                          <Calendar size={20} />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-bold text-gray-800 text-lg">{registro.data}</h3>
+                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock size={10} /> {registro.hora} • {registro.totalItens} itens
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* LADO DIREITO: BOTÕES DE AÇÃO */}
+                      <div className="flex items-center gap-4">
+                        {/* ÍCONE DE LIXEIRA PARA EXCLUIR */}
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation(); // Impede que o card abra ao clicar na lixeira
+                            handleExcluirHistorico(registro.id);
+                          }} 
+                          className="text-gray-300 hover:text-red-500 transition-colors p-2"
+                          title="Excluir este relatório"
+                        >
+                          <Trash2 size={20} />
+                        </div>
+                        
+                        {/* SETA DE EXPANDIR */}
+                        <div className="text-gray-400">
+                          {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                        </div>
+                      </div>
+                    </button>
                     {isExpanded && (
                       <div className="bg-purple-50/30 border-t border-purple-50 p-4">
                         <div className="mb-6 bg-white p-3 rounded-lg border border-purple-100 shadow-sm">
@@ -1025,28 +1087,29 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                           <button onClick={() => handleCopiarListaGeral(registro)} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3">
                               <Copy size={16} /> Copiar Relatório Completo (Gerente)
                           </button>
-                          {/* NOVO BOTÃO PARA A CHEFE (Adicione este aqui) */}
-  <button 
-    onClick={() => handleCopiarResumoChefe(registro)} 
-    className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
-  >
-      <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
-  </button>
-  {/* BOTÃO PARA O GRUPO DOS COZINHEIROS (Substituindo o PDF) */}
-<button 
-  onClick={() => handleCopiarOrdemCozinha(registro)} 
-  className="w-full bg-slate-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
->
-    <Share2 size={16} /> Enviar Ordem p/ Cozinha (WhatsApp)
-</button>
+                          
+                          <button 
+                            onClick={() => handleCopiarResumoChefe(registro)} 
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+                          >
+                              <FileText size={16} /> Gerar Resumo para Chefe (Por que comprar?)
+                          </button>
+                          
+                          <button 
+                            onClick={() => handleCopiarOrdemCozinha(registro)} 
+                            className="w-full bg-slate-800 hover:bg-black text-white font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 shadow-sm transition-colors text-sm mb-3"
+                          >
+                            <Share2 size={16} /> Enviar Ordem p/ Cozinha (WhatsApp)
+                          </button>
+                          
                           <div className="border-t border-gray-100 my-3"></div>
                           <p className="text-[10px] font-bold text-gray-400 mb-2">SELECIONE OS FORNECEDORES PARA COPIAR:</p>
                           <div className="grid grid-cols-2 gap-2 mb-3">
                               {fornecedoresDoRegistro.map(forn => {
-                                  const isSelected = selectedFornecedores.includes(forn);
+                                  const isFornSelected = selectedFornecedores.includes(forn);
                                   return (
-                                      <button key={forn} onClick={() => toggleFornecedorSelection(forn)} className={`border text-xs font-bold py-2 px-2 rounded-lg flex items-center gap-2 transition-colors ${isSelected ? 'bg-purple-100 border-purple-300 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>{isSelected && <Check size={10} className="text-white" />}</div>{forn}
+                                      <button key={forn} onClick={() => toggleFornecedorSelection(forn)} className={`border text-xs font-bold py-2 px-2 rounded-lg flex items-center gap-2 transition-colors ${isFornSelected ? 'bg-purple-100 border-purple-300 text-purple-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                                          <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isFornSelected ? 'bg-purple-600 border-purple-600' : 'bg-white border-gray-300'}`}>{isFornSelected && <Check size={10} className="text-white" />}</div>{forn}
                                       </button>
                                   )
                               })}
@@ -1057,22 +1120,22 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
                         </div>
                         <div className="space-y-2">
                           {registro.itens.map((item, idx) => (
-  <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-purple-100 shadow-sm">
-    <div className="flex flex-col">
-      <span className="text-sm font-bold text-gray-700">{item.nome}</span>
-      <span className="text-[10px] text-gray-400 uppercase italic">
-        Tinha: {item.estoque_no_dia} | Mínimo: {item.minimo_esperado}
-      </span>
-    </div>
-    
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span>
-      <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
-        +{item.qtd} {item.unidade}
-      </span>
-    </div>
-  </div>
-))}
+                            <div key={idx} className="flex justify-between items-center bg-white p-3 rounded border border-purple-100 shadow-sm">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-gray-700">{item.nome}</span>
+                                <span className="text-[10px] text-gray-400 uppercase italic">
+                                  Tinha: {item.estoque_no_dia} | Mínimo: {item.minimo_esperado}
+                                </span>
+                              </div>
+                              
+                              <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{item.local}</span>
+                                <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100">
+                                  +{item.qtd} {item.unidade}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1082,7 +1145,7 @@ showToast(editingId ? 'Produto atualizado!' : 'Produto adicionado!');
             )}
           </div>
         )}
-
+        
         {activeTab === 'dashboard' && (
           <div className="space-y-6 animate-fade-in">
              <div className="grid grid-cols-2 gap-4">
