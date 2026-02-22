@@ -57,15 +57,22 @@ export default function GestaoCompras() {
     if (dataFornecedores) setFornecedores(dataFornecedores);
 
     // Buscar Histórico
+    // Buscar Histórico
     const { data: dataHistorico } = await supabase.from('historico_compras').select('*').order('id', { ascending: false });
     if (dataHistorico) {
-      const historicoFormatado = dataHistorico.map(h => ({
-        ...h,
-        data: h.data_registro,
-        hora: h.hora_registro,
-        totalItens: h.total_itens,
-        itens: h.itens_json
-      }));
+      const historicoFormatado = dataHistorico.map(h => {
+        // NOVO: Converte de YYYY-MM-DD (Banco) de volta para DD/MM/YYYY (Tela)
+        const partesData = h.data_registro ? h.data_registro.split('-') : [];
+        const dataBR = partesData.length === 3 ? `${partesData[2]}/${partesData[1]}/${partesData[0]}` : h.data_registro;
+
+        return {
+          ...h,
+          data: dataBR, // Mostra bonito na tela
+          hora: h.hora_registro,
+          totalItens: h.total_itens,
+          itens: h.itens_json
+        };
+      });
       setHistorico(historicoFormatado);
     }
     setLoading(false);
@@ -489,18 +496,24 @@ insumos.forEach(item => {
     // --- SALVAR HISTÓRICO ---
     else if (modalAction === 'save') {
       const agora = new Date();
-      const dataHoje = formatDateKey(agora);
+      const dataHoje = formatDateKey(agora); // Formato BR para a tela: 21/02/2026
       const horaHoje = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+      // NOVO: Traduz a data local para o padrão YYYY-MM-DD que o Banco aceita
+      const ano = agora.getFullYear();
+      const mes = String(agora.getMonth() + 1).padStart(2, '0');
+      const dia = String(agora.getDate()).padStart(2, '0');
+      const dataParaBanco = `${ano}-${mes}-${dia}`; 
+
       const novoHistorico = {
-        data_registro: dataHoje,
+        data_registro: dataParaBanco, // MUDAMOS AQUI: Enviamos para o banco no formato americano
         hora_registro: horaHoje,
         total_itens: dadosLista.totalItensParaComprar,
         itens_json: (dadosLista.itensFlat || []).map(item => ({
           nome: item.nome,
           qtd: (parseFloat(item.falta) || 0).toFixed(2),
-          estoque_no_dia: item.qtd_atual,              // O que TINHA na prateleira (NOVO)
-          minimo_esperado: item.qtd_minima,             // O que o sistema pedia (NOVO)
+          estoque_no_dia: item.qtd_atual,
+          minimo_esperado: item.qtd_minima,
           unidade: item.unidade,
           local: item.local
         }))
@@ -511,7 +524,7 @@ insumos.forEach(item => {
       if (!error && data) {
          const histFormatado = {
              ...data[0],
-             data: data[0].data_registro,
+             data: dataHoje, // Mantemos o padrão BR para mostrar na tela
              hora: data[0].hora_registro,
              totalItens: data[0].total_itens,
              itens: data[0].itens_json
@@ -520,10 +533,8 @@ insumos.forEach(item => {
          showToast('Lista salva no histórico!', 'success');
          setTimeout(() => setActiveTab('historico'), 500);
       } else {
-         // --- CÓDIGO DE TESTE PARA DESCOBRIR O ERRO ---
          console.error("🚨 ERRO SUPABASE:", error);
          alert("O Supabase recusou: " + (error?.message || JSON.stringify(error)));
-         
          showToast('Erro ao salvar histórico', 'error');
       }
     }
