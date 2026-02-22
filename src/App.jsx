@@ -223,7 +223,7 @@ export default function GestaoCompras() {
 };
 
 const handleCopiarOrdemCozinha = () => {
-  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO (INTELIGENTE) - ${formatDateKey(selectedDate)}*\n`;
+  let texto = `*👨‍🍳 ORDEM DE REPOSIÇÃO - ${formatDateKey(selectedDate)}*\n`;
   texto += `----------------------------------\n\n`;
 
   // Filtra itens que são produzidos internamente (os "Filhos")
