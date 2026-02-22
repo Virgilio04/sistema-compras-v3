@@ -247,7 +247,7 @@ const handleCopiarOrdemCozinha = () => {
 
       texto += `*🔹 ${filho.nome.toUpperCase()}*\n`;
       texto += `📦 Retirar da geladeira: *${quantoPegarDoBruto} ${pai?.unidade || ''}* de ${pai?.nome || 'Matéria-prima'}\n`;
-      texto += `✅ Produzir para completar meta: *${minimoAjustado} ${filho.unidade}*\n`;
+      texto += `✅ Produzir para completar: *${minimoAjustado} ${filho.unidade}*\n`;
       texto += `------------------\n`;
     }
   });
