@@ -255,7 +255,7 @@ const handleCopiarOrdemCozinha = () => {
   if (!temProducao) {
     texto += `✅ Todos os potes estão abastecidos para a demanda do dia!\n`;
   } else {
-    texto += `\n_Obs: Produza apenas o necessário para bater a meta acima._`;
+    texto += `\n_Obs: Produza apenas o necessário._`;
   }
 
   navigator.clipboard.writeText(texto).then(() => {
